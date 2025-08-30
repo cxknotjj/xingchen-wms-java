@@ -29,7 +29,7 @@
 			<groupId>org.jeecgframework</groupId>
 			<artifactId>weixin4j</artifactId>
 		</dependency>
-		<!-- 积木报表 -->
+		<!--&lt;!&ndash; 积木报表 &ndash;&gt;
 		<dependency>
 			<groupId>org.jeecgframework.jimureport</groupId>
 			<artifactId>jimureport-spring-boot3-starter-fastjson2</artifactId>
@@ -44,7 +44,7 @@
 			<groupId>org.jeecgframework.jimureport</groupId>
 			<artifactId>jimureport-nosql-starter</artifactId>
 		</dependency>
-		<!-- 积木BI -->
+		&lt;!&ndash; 积木BI &ndash;&gt;
 		<dependency>
 			<groupId>org.jeecgframework.jimureport</groupId>
 			<artifactId>jimubi-spring-boot3-starter</artifactId>
@@ -54,7 +54,7 @@
 					<artifactId>jsqlparser</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency>-->
 		<!-- AI大模型管理 -->
 		<dependency>
 			<groupId>org.jeecgframework.boot</groupId>
@@ -62,5 +62,5 @@
 			<version>${jeecgboot.version}</version>
 		</dependency>
 	</dependencies>
-	
+
 </project>
