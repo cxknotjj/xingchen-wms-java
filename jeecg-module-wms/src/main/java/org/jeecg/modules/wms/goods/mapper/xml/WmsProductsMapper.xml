@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.wms.goods.mapper.WmsProductsMapper">
+
+    <select id="queryList" parameterType="org.jeecg.modules.wms.goods.entity.WmsProducts" resultType="org.jeecg.modules.wms.goods.entity.WmsProducts">
+        SELECT
+            co.owner_name as ownerName,
+            pb.name as brandName,
+            p.*
+        FROM
+            wms_products p
+                LEFT JOIN
+            wms_cargo_owners co ON p.owner_id = co.id
+                LEFT JOIN
+            wms_product_brand pb ON p.product_brand = pb.id
+        WHERE
+            p.status = '1'  -- 只查询启用状态的商品
+        <if test="wmsProducts.ownerId != null and wmsProducts.ownerId != ''">
+            AND p.owner_id = #{wmsProducts.ownerId}
+        </if>
+        <if test="wmsProducts.productCode != null and wmsProducts.productCode != ''">
+            AND p.product_code LIKE concat('%',#{wmsProducts.productCode},'%')
+        </if>
+    </select>
+</mapper>
