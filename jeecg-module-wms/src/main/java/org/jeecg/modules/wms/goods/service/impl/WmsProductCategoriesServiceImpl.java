@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
@@ -39,9 +40,65 @@ public class WmsProductCategoriesServiceImpl extends ServiceImpl<WmsProductCateg
 				baseMapper.updateById(parent);
 			}
 		}
+        // 生成category_code
+        String categoryCode = generateCategoryCode(wmsProductCategories.getParentId());
+        wmsProductCategories.setCategoryCode(categoryCode);
 		baseMapper.insert(wmsProductCategories);
 	}
-	
+
+    /**
+     * generateCategoryCode 生成category_code
+     * @param parentId
+     */
+    private String generateCategoryCode(String parentId) {
+        // 1. 确定前缀 (父级编码)
+        String prefix = "";
+        if (oConvertUtils.isNotEmpty(parentId) && !"0".equals(parentId)) {
+            // 根据 parentId 查询父对象，获取父对象的 category_code
+            WmsProductCategories parent = this.getById(parentId);
+            if (parent == null) {
+                throw new JeecgBootException("父节点不存在");
+            }
+            prefix = parent.getCategoryCode();
+        }
+
+        // 2. 查找当前父节点下的所有子节点，获取最大编号
+        // SQL逻辑: SELECT category_code FROM wms_product_categories WHERE parent_id = #{parentId}
+        List<String> existingCodes = baseMapper.selectList(
+                new LambdaQueryWrapper<WmsProductCategories>()
+                        .eq(WmsProductCategories::getParentId, parentId))
+                .stream()
+                .map(WmsProductCategories::getCategoryCode)
+                .collect(Collectors.toList());
+
+        int maxSeq = 0;
+
+        if (existingCodes != null && !existingCodes.isEmpty()) {
+            for (String code : existingCodes) {
+                // 自身编号固定为最后两位
+                // 例如父级是 01，子级是 0105，截取后两位 "05" -> 转为数字 5
+                String suffix = code.substring(code.length() - 2);
+                try {
+                    int currentSeq = Integer.parseInt(suffix);
+                    if (currentSeq > maxSeq) {
+                        maxSeq = currentSeq;
+                    }
+                } catch (NumberFormatException e) {
+                    // 忽略格式错误的数据
+                }
+            }
+        }
+
+        // 3. 生成新的自身编号 (最大值 + 1)
+        int newSeq = maxSeq + 1;
+
+        // 4. 格式化：保持两位数，不足补零 (例如 1 -> "01", 12 -> "12")
+        String selfCode = String.format("%02d", newSeq);
+
+        // 5. 拼接返回
+        return prefix + selfCode;
+    }
+
 	@Override
 	public void updateWmsProductCategories(WmsProductCategories wmsProductCategories) {
 		WmsProductCategories entity = this.getById(wmsProductCategories.getId());
