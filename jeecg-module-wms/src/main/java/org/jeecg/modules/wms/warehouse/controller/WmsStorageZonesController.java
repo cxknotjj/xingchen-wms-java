@@ -44,7 +44,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
  /**
  * @Description: 储区表
  * @Author: jeecg-boot
- * @Date:   2026-07-21
+ * @Date:   2025-09-03
  * @Version: V1.0
  */
 @Tag(name="储区表")
@@ -57,7 +57,7 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 
 	@Autowired
 	private IWmsWarehousesService wmsWarehousesService;
-	
+
 	/**
 	 * 分页列表查询
 	 *
@@ -67,42 +67,66 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	 * @param req
 	 * @return
 	 */
-	//@AutoLog(value = "储区表-分页列表查询")
-	@Operation(summary="储区表-分页列表查询")
+	@AutoLog(value = "储区表-分页列表查询")
+	@Operation(summary="储区表-分页列表查询",operationId = "wmsStorageZones-queryList")
 	@GetMapping(value = "/list")
 	public Result<IPage<WmsStorageZones>> queryPageList(WmsStorageZones wmsStorageZones,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
 								   HttpServletRequest req) {
-		IPage<WmsStorageZones> pageList = wmsStorageZonesService.queryList(wmsStorageZones, pageNo, pageSize);
-		return Result.OK(pageList);
-
+		IPage<WmsStorageZones> page =  wmsStorageZonesService.queryList(wmsStorageZones,pageNo,pageSize);
+		return Result.OK(page);
+	}
+//	@AutoLog(value = "储区表-分页列表查询")
+//	@Operation(summary="储区表-分页列表查询")
+//	@GetMapping(value = "/list")
+//	public Result<IPage<WmsStorageZones>> queryPageList(WmsStorageZones wmsStorageZones,
+//								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+//								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
+//								   HttpServletRequest req) {
+//        QueryWrapper<WmsStorageZones> queryWrapper = QueryGenerator.initQueryWrapper(wmsStorageZones, req.getParameterMap());
+//		Page<WmsStorageZones> page = new Page<WmsStorageZones>(pageNo, pageSize);
 //		IPage<WmsStorageZones> pageList = wmsStorageZonesService.page(page, queryWrapper);
-//
-//		// 如果pagelist为空
-//		if (pageList.getRecords().size() == 0) {
+//		List<WmsStorageZones> records = pageList.getRecords();
+//		//如果pageList为空直接返回
+//		if(records.size()<=0){
 //			return Result.OK(pageList);
 //		}
-//		// 从pageList中提取仓库id
-//		List<String> warehouseIds = pageList.getRecords().stream()
-//				.map(WmsStorageZones::getWarehouseId)
-//				.collect(Collectors.toList());
 //
-//		// 根据仓库id查询仓库名称
+//
+//		//从pageList提取出仓库id
+//		List<String> warehouseIds = pageList.getRecords().stream().map(item->{
+//			return item.getWarehouseId();
+//		}).collect(Collectors.toList());
+//
+//		//根据仓库id查询仓库名称
 //		List<WmsWarehouses> wmsWarehouses = wmsWarehousesService.listByIds(warehouseIds);
 //
-//		// 遍历pageList向warehouse添加仓库名称
-//		pageList.getRecords().forEach(item -> {
-//            // 获取仓库id
+//		//遍历pageList，向warehouseName赋值
+//		pageList.getRecords().forEach(item->{
 //			String warehouseId = item.getWarehouseId();
-//			WmsWarehouses warehouse = wmsWarehouses.stream()
-//					.filter(w -> w.getId().equals(warehouseId))
-//					.findFirst().orElse(new WmsWarehouses());
-//			// 设置仓库名称
-//			item.setWarehouseName(warehouse.getWarehouseName());
+//			//根据item中的仓库id从wmsWarehouses找一个对象
+//			WmsWarehouses wmsWarehouses1 = wmsWarehouses.stream().filter(warehouse -> warehouse.getId().equals(warehouseId)).findFirst().orElse(new WmsWarehouses());
+//
+//			//找到对应的仓库对象后，将仓库名称设置到item中
+//			item.setWarehouseName(wmsWarehouses1.getWarehouseName());
+//
 //		});
-	}
-	
+//
+//		return Result.OK(pageList);
+//	}
+//	@Operation(summary="储区表-分页列表查询")
+//	@GetMapping(value = "/list")
+//	public Result<IPage<WmsStorageZones>> queryPageList(WmsStorageZones wmsStorageZones,
+//								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+//								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
+//								   HttpServletRequest req) {
+//        QueryWrapper<WmsStorageZones> queryWrapper = QueryGenerator.initQueryWrapper(wmsStorageZones, req.getParameterMap());
+//		Page<WmsStorageZones> page = new Page<WmsStorageZones>(pageNo, pageSize);
+//		IPage<WmsStorageZones> pageList = wmsStorageZonesService.page(page, queryWrapper);
+//		return Result.OK(pageList);
+//	}
+
 	/**
 	 *   添加
 	 *
@@ -117,7 +141,7 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 		wmsStorageZonesService.save(wmsStorageZones);
 		return Result.OK("添加成功！");
 	}
-	
+
 	/**
 	 *  编辑
 	 *
@@ -132,7 +156,7 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 		wmsStorageZonesService.updateById(wmsStorageZones);
 		return Result.OK("编辑成功!");
 	}
-	
+
 	/**
 	 *   通过id删除
 	 *
@@ -147,7 +171,7 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 		wmsStorageZonesService.removeById(id);
 		return Result.OK("删除成功!");
 	}
-	
+
 	/**
 	 *  批量删除
 	 *
@@ -162,7 +186,7 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 		this.wmsStorageZonesService.removeByIds(Arrays.asList(ids.split(",")));
 		return Result.OK("批量删除成功!");
 	}
-	
+
 	/**
 	 * 通过id查询
 	 *

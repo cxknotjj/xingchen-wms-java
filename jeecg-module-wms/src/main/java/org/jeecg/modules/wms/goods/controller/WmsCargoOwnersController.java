@@ -42,7 +42,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
  /**
  * @Description: 货主表
  * @Author: jeecg-boot
- * @Date:   2026-07-20
+ * @Date:   2025-09-02
  * @Version: V1.0
  */
 @Tag(name="货主表")
@@ -52,7 +52,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IWmsCargoOwnersService> {
 	@Autowired
 	private IWmsCargoOwnersService wmsCargoOwnersService;
-	
+
 	/**
 	 * 分页列表查询
 	 *
@@ -74,7 +74,7 @@ public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IW
 		IPage<WmsCargoOwners> pageList = wmsCargoOwnersService.page(page, queryWrapper);
 		return Result.OK(pageList);
 	}
-	
+
 	/**
 	 *   添加
 	 *
@@ -87,9 +87,10 @@ public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IW
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsCargoOwners wmsCargoOwners) {
 		wmsCargoOwnersService.add(wmsCargoOwners);
+//		wmsCargoOwnersService.save(wmsCargoOwners);
 		return Result.OK("添加成功！");
 	}
-	
+
 	/**
 	 *  编辑
 	 *
@@ -104,7 +105,7 @@ public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IW
 		wmsCargoOwnersService.updateById(wmsCargoOwners);
 		return Result.OK("编辑成功!");
 	}
-	
+
 	/**
 	 *   通过id删除
 	 *
@@ -119,7 +120,7 @@ public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IW
 		wmsCargoOwnersService.removeById(id);
 		return Result.OK("删除成功!");
 	}
-	
+
 	/**
 	 *  批量删除
 	 *
@@ -134,7 +135,7 @@ public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IW
 		this.wmsCargoOwnersService.removeByIds(Arrays.asList(ids.split(",")));
 		return Result.OK("批量删除成功!");
 	}
-	
+
 	/**
 	 * 通过id查询
 	 *

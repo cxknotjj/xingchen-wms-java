@@ -9,15 +9,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 /**
  * @Description: 储位表
  * @Author: jeecg-boot
- * @Date:   2026-07-21
+ * @Date:   2025-09-03
  * @Version: V1.0
  */
 public interface WmsStorageLocationsMapper extends BaseMapper<WmsStorageLocations> {
 
-    /**
-     * 分页列表查询
-     * @param wmsStorageLocations
-     * @return
-     */
-    List<WmsStorageLocations> queryList(WmsStorageLocations wmsStorageLocations);
 }

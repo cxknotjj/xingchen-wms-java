@@ -66,11 +66,11 @@ public class WmsProductImagesController extends JeecgController<WmsProductImages
 	@Operation(summary="商品图片表-分页列表查询")
 	@GetMapping(value = "/list")
 	public Result<IPage<WmsProductImages>> queryPageList(
-								   @RequestParam(name="productId", defaultValue="") String productId,
+								   WmsProductImages wmsProductImages,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
 								   HttpServletRequest req) {
-		IPage<WmsProductImages> pageList = wmsProductImagesService.queryList( productId, pageNo, pageSize);
+		IPage<WmsProductImages> pageList = wmsProductImagesService.queryList(wmsProductImages.getProductId(), pageNo, pageSize);
 		return Result.OK(pageList);
 	}
 	
