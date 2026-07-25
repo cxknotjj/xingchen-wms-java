@@ -11,7 +11,6 @@ import java.net.URLDecoder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jeecg.common.api.vo.Result;
-import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.common.system.query.QueryGenerator;
 import org.jeecg.common.system.query.QueryRuleEnum;
 import org.jeecg.common.util.oConvertUtils;
@@ -43,7 +42,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
  /**
  * @Description: 仓库表
  * @Author: jeecg-boot
- * @Date:   2026-07-20
+ * @Date:   2025-09-02
  * @Version: V1.0
  */
 @Tag(name="仓库表")
@@ -53,7 +52,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWmsWarehousesService> {
 	@Autowired
 	private IWmsWarehousesService wmsWarehousesService;
-	
+
 	/**
 	 * 分页列表查询
 	 *
@@ -75,7 +74,7 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 		IPage<WmsWarehouses> pageList = wmsWarehousesService.page(page, queryWrapper);
 		return Result.OK(pageList);
 	}
-	
+
 	/**
 	 *   添加
 	 *
@@ -88,9 +87,10 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsWarehouses wmsWarehouses) {
 		wmsWarehousesService.add(wmsWarehouses);
+//		wmsWarehousesService.save(wmsWarehouses);
 		return Result.OK("添加成功！");
 	}
-	
+
 	/**
 	 *  编辑
 	 *
@@ -103,9 +103,10 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody WmsWarehouses wmsWarehouses) {
 		wmsWarehousesService.edit(wmsWarehouses);
+//		wmsWarehousesService.updateById(wmsWarehouses);
 		return Result.OK("编辑成功!");
 	}
-	
+
 	/**
 	 *   通过id删除
 	 *
@@ -117,18 +118,24 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	@RequiresPermissions("warehouse:wms_warehouses:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
-		// 只有仓库状态为创建时才可以删除
-		WmsWarehouses wmsWarehouses = wmsWarehousesService.getById(id);
-		if(wmsWarehouses==null) {
-			throw new JeecgBootException("未找到对应数据");
-		}
-		if(!wmsWarehouses.getStatus().equals("CREATED")) {
-			throw new JeecgBootException("只有仓库状态为创建时才可以删除");
-		}
 		wmsWarehousesService.removeById(id);
 		return Result.OK("删除成功!");
 	}
-	
+	@AutoLog(value = "仓库表-启用")
+	@Operation(summary="仓库表-启用")
+	@RequestMapping(value = "/enable",method = {RequestMethod.PUT,RequestMethod.POST})
+	public Result<String> enable(@RequestParam(name="id",required=true) String id) {
+		wmsWarehousesService.enable(id);
+		return Result.OK("启用成功!");
+	}
+	@AutoLog(value = "仓库表-禁用")
+	@Operation(summary="仓库表-禁用")
+	@RequestMapping(value = "/disable",method = {RequestMethod.PUT,RequestMethod.POST})
+	public Result<String> disable(@RequestParam(name="id",required=true) String id) {
+		wmsWarehousesService.disable(id);
+		return Result.OK("禁用成功!");
+	}
+
 	/**
 	 *  批量删除
 	 *
@@ -144,30 +151,7 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 		return Result.OK("批量删除成功!");
 	}
 
-	 /**
-	  * 启用
-	  */
-	 @AutoLog(value = "仓库表-启用")
-	 @Operation(summary="仓库表-启用")
-	 @RequestMapping(value = "/enable",method = {RequestMethod.PUT,RequestMethod.POST})
-	 public Result<String> enable(@RequestBody Map<String,String> params) {
-		 wmsWarehousesService.enable(params.get("id"));
-		 return Result.OK("启用成功!");
-	 }
-
-	 /**
-	  * 禁用仓库
-	  */
-	  @AutoLog(value = "仓库表-禁用")
-	  @Operation(summary="仓库表-禁用")
-	  @RequestMapping(value = "/disable",method = {RequestMethod.PUT,RequestMethod.POST})
-	  public Result<String> disable(@RequestBody Map<String,String> params) {
-		 wmsWarehousesService.disable(params.get("id"));
-		 return Result.OK("禁用成功!");
-	  }
-
-
-	 /**
+	/**
 	 * 通过id查询
 	 *
 	 * @param id

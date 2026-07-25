@@ -20,7 +20,7 @@ import lombok.experimental.Accessors;
 /**
  * @Description: 储区表
  * @Author: jeecg-boot
- * @Date:   2026-07-21
+ * @Date:   2025-09-03
  * @Version: V1.0
  */
 @Data
@@ -65,7 +65,7 @@ public class WmsStorageZones implements Serializable {
     @Dict(dicCode = "zone_type")
     private String zoneType;
 	/**状态: 创建,禁用, 启用*/
-	@Excel(name = "状态: 创建,禁用, 启用", width = 15, dicCode = "wms_status")
+	@Excel(name = "状态: 创建,禁用, 启用", width = 15, dicCode = "dict_item_status")
 	@Dict(dicCode = "wms_status")
     @Schema(description = "状态: 创建,禁用, 启用")
     private String status;
@@ -79,7 +79,11 @@ public class WmsStorageZones implements Serializable {
     @Schema(description = "所属仓库")
     private String warehouseId;
 
+
     @Schema(description = "所属仓库名称")
     @TableField(exist = false)
     private String warehouseName;
+
+
+
 }

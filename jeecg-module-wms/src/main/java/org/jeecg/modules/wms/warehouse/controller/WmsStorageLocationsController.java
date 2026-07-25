@@ -15,7 +15,7 @@ import org.jeecg.common.system.query.QueryGenerator;
 import org.jeecg.common.system.query.QueryRuleEnum;
 import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.wms.warehouse.entity.WmsStorageLocations;
-import org.jeecg.modules.wms.warehouse.entity.WmsStorageZones;
+import org.jeecg.modules.wms.warehouse.entity.WmsWarehouses;
 import org.jeecg.modules.wms.warehouse.service.IWmsStorageLocationsService;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -23,6 +23,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 
+import org.jeecg.modules.wms.warehouse.service.IWmsWarehousesService;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.def.NormalExcelConstants;
 import org.jeecgframework.poi.excel.entity.ExportParams;
@@ -43,7 +44,7 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
  /**
  * @Description: 储位表
  * @Author: jeecg-boot
- * @Date:   2026-07-21
+ * @Date:   2025-09-03
  * @Version: V1.0
  */
 @Tag(name="储位表")
@@ -53,7 +54,10 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 public class WmsStorageLocationsController extends JeecgController<WmsStorageLocations, IWmsStorageLocationsService> {
 	@Autowired
 	private IWmsStorageLocationsService wmsStorageLocationsService;
-	
+
+	@Autowired
+	private IWmsWarehousesService wmsWarehousesService;
+
 	/**
 	 * 分页列表查询
 	 *
@@ -63,17 +67,18 @@ public class WmsStorageLocationsController extends JeecgController<WmsStorageLoc
 	 * @param req
 	 * @return
 	 */
-	//@AutoLog(value = "储位表-分页列表查询")
 	@Operation(summary="储位表-分页列表查询")
 	@GetMapping(value = "/list")
 	public Result<IPage<WmsStorageLocations>> queryPageList(WmsStorageLocations wmsStorageLocations,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
 								   HttpServletRequest req) {
-		IPage<WmsStorageLocations> pageList = wmsStorageLocationsService.queryList(wmsStorageLocations, pageNo, pageSize);
+        QueryWrapper<WmsStorageLocations> queryWrapper = QueryGenerator.initQueryWrapper(wmsStorageLocations, req.getParameterMap());
+		Page<WmsStorageLocations> page = new Page<WmsStorageLocations>(pageNo, pageSize);
+		IPage<WmsStorageLocations> pageList = wmsStorageLocationsService.page(page, queryWrapper);
 		return Result.OK(pageList);
 	}
-	
+
 	/**
 	 *   添加
 	 *
@@ -85,10 +90,10 @@ public class WmsStorageLocationsController extends JeecgController<WmsStorageLoc
 	@RequiresPermissions("warehouse:wms_storage_locations:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsStorageLocations wmsStorageLocations) {
-		wmsStorageLocationsService.add(wmsStorageLocations);
+		wmsStorageLocationsService.save(wmsStorageLocations);
 		return Result.OK("添加成功！");
 	}
-	
+
 	/**
 	 *  编辑
 	 *
@@ -104,28 +109,6 @@ public class WmsStorageLocationsController extends JeecgController<WmsStorageLoc
 		return Result.OK("编辑成功!");
 	}
 
-	 /**
-	  * 启用
-	  */
-	 @AutoLog(value = "储位表-启用")
-	 @Operation(summary="储位表-启用")
-	 @RequestMapping(value = "/enable",method = {RequestMethod.PUT,RequestMethod.POST})
-	 public Result<String> enable(@RequestBody Map<String,String> params) {
-		 wmsStorageLocationsService.enable(params.get("id"));
-		 return Result.OK("启用成功!");
-	 }
-
-	 /**
-	  * 禁用储位表
-	  */
-	 @AutoLog(value = "储位表-禁用")
-	 @Operation(summary="储位表-禁用")
-	 @RequestMapping(value = "/disable",method = {RequestMethod.PUT,RequestMethod.POST})
-	 public Result<String> disable(@RequestBody Map<String,String> params) {
-		 wmsStorageLocationsService.disable(params.get("id"));
-		 return Result.OK("禁用成功!");
-	 }
-	
 	/**
 	 *   通过id删除
 	 *
@@ -140,7 +123,7 @@ public class WmsStorageLocationsController extends JeecgController<WmsStorageLoc
 		wmsStorageLocationsService.removeById(id);
 		return Result.OK("删除成功!");
 	}
-	
+
 	/**
 	 *  批量删除
 	 *
@@ -155,7 +138,7 @@ public class WmsStorageLocationsController extends JeecgController<WmsStorageLoc
 		this.wmsStorageLocationsService.removeByIds(Arrays.asList(ids.split(",")));
 		return Result.OK("批量删除成功!");
 	}
-	
+
 	/**
 	 * 通过id查询
 	 *
