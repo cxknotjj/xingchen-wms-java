@@ -13,6 +13,8 @@ import java.util.HashMap;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.jeecg.modules.wms.goods.entity.WmsCargoOwners;
+import org.jeecg.modules.wms.goods.service.IWmsCargoOwnersService;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.def.NormalExcelConstants;
 import org.jeecgframework.poi.excel.entity.ExportParams;
@@ -61,7 +63,8 @@ public class WmsStockInOrdersController {
 	private IWmsStockInOrdersService wmsStockInOrdersService;
 	@Autowired
 	private IWmsStockInOrderItemsService wmsStockInOrderItemsService;
-
+	@Autowired
+	private IWmsCargoOwnersService wmsCargoOwnersService;
 	/**
 	 * 分页列表查询
 	 *
@@ -81,6 +84,19 @@ public class WmsStockInOrdersController {
         QueryWrapper<WmsStockInOrders> queryWrapper = QueryGenerator.initQueryWrapper(wmsStockInOrders, req.getParameterMap());
 		Page<WmsStockInOrders> page = new Page<WmsStockInOrders>(pageNo, pageSize);
 		IPage<WmsStockInOrders> pageList = wmsStockInOrdersService.page(page, queryWrapper);
+		// 判断pageList是否为空
+		if (pageList == null || pageList.getRecords().isEmpty()) {
+			return Result.OK(pageList);
+		}
+		// 获取货主id
+		List<WmsStockInOrders> records = pageList.getRecords();
+		List<String> ownerIds = records.stream().map(WmsStockInOrders::getOwnerId).collect(Collectors.toList());
+		// 根据货主id获取货主姓名
+		List<WmsCargoOwners> owners = wmsCargoOwnersService.listByIds(ownerIds);
+		// 合并货主姓名
+		records.forEach(record -> {
+			record.setOwnerName(owners.stream().filter(owner -> owner.getId().equals(record.getOwnerId())).findFirst().map(WmsCargoOwners::getOwnerName).orElse(""));
+		});
 		return Result.OK(pageList);
 	}
 

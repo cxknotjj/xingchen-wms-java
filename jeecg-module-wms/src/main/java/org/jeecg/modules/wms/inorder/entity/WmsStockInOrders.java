@@ -3,10 +3,8 @@ package org.jeecg.modules.wms.inorder.entity;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+
+import com.baomidou.mybatisplus.annotation.*;
 import org.jeecg.common.constant.ProvinceCityArea;
 import org.jeecg.common.util.SpringContextUtils;
 import lombok.Data;
@@ -104,4 +102,8 @@ public class WmsStockInOrders implements Serializable {
 	@Excel(name = "仓库", width = 15)
     @Schema(description = "仓库")
     private java.lang.String warehouseId;
+    /**货主姓名*/
+    @Schema(description = "货主姓名")
+    @TableField(exist = false)
+    private java.lang.String ownerName;
 }
