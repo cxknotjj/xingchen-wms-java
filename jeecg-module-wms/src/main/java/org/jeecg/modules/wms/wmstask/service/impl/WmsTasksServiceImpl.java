@@ -16,6 +16,10 @@ import org.jeecg.modules.wms.inorder.entity.WmsStockInOrderItems;
 import org.jeecg.modules.wms.inorder.entity.WmsStockInOrders;
 import org.jeecg.modules.wms.inorder.service.IWmsStockInOrderItemsService;
 import org.jeecg.modules.wms.inorder.service.IWmsStockInOrdersService;
+import org.jeecg.modules.wms.inventory.entity.WmsInventoryTrans;
+import org.jeecg.modules.wms.inventory.service.IWmsInventoryTransService;
+import org.jeecg.modules.wms.inventory.service.impl.WmsInventoryTransByReceiving;
+import org.jeecg.modules.wms.inventory.vo.WmsInventoryTransParam;
 import org.jeecg.modules.wms.warehouse.entity.WmsStorageLocations;
 import org.jeecg.modules.wms.warehouse.service.IWmsStorageLocationsService;
 import org.jeecg.modules.wms.wmstask.entity.WmsTasks;
@@ -53,9 +57,14 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
     @Autowired
     private IWmsTasksRecordsService wmsTasksRecordsService;
 
+    @Autowired
+    private WmsInventoryTransByReceiving wmsInventoryTransByReceiving;
+
 
     @Autowired
     private RedisUtil redisUtil;
+    @Autowired
+    private IWmsInventoryTransService iWmsInventoryTransService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -166,6 +175,25 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
         // 更新入库单中收货数量，如果所有明细的状态为收货完成，那么入库单的状态为完成。
         wmsStockInOrdersService.updateReceivedStatus(tasks.getStockInOrderId());
         // 增加库存
+        WmsInventoryTransParam inventoryTransParam = new WmsInventoryTransParam();
+        inventoryTransParam.setProductId(tasks.getProductId()); // 商品id
+        inventoryTransParam.setExecQuantity(wmsTasksRecords.getExecQuantity()); // 执行数量
+        inventoryTransParam.setTargetLocationCode(wmsTasksRecords.getTargetLocationCode()); // 目标储位编码
+        inventoryTransParam.setTransactionType(WarehouseDictEnum.INVENTORY_RECEIVING.getCode()); // 库存变更类型
+        inventoryTransParam.setWarehouseId(tasks.getTargetWarehouseId()); // 仓库id
+        inventoryTransParam.setBatchNumber(wmsTasksRecords.getBatchNumber()); // 批次号
+        inventoryTransParam.setOperator(tasks.getOperator()); // 执行人
+        inventoryTransParam.setOperationTime(new Date());
+        String inventoryAttribute = wmsTasksRecords.getInventoryAttribute(); // 库存属性
+        // 如果库存属性是良品，那么设置isSellable为1，否则为0
+        if (inventoryAttribute.equals(WarehouseDictEnum.INVENTORY_ATTRIBUTE_GOOD.getCode())) {
+            inventoryTransParam.setIsSellable("1"); //可售
+        }else {
+            inventoryTransParam.setIsSellable("0"); //不可售
+        }
+        // 保质期
+        inventoryTransParam.setExpiryDate(wmsTasksRecords.getExpiryDate());
+        wmsInventoryTransByReceiving.transfer(inventoryTransParam);
 
         // 如果该入库单收货完成，那么创建上架任务
     }
