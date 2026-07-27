@@ -4,10 +4,8 @@ import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.math.BigDecimal;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+
+import com.baomidou.mybatisplus.annotation.*;
 import org.jeecg.common.constant.ProvinceCityArea;
 import org.jeecg.common.util.SpringContextUtils;
 import lombok.Data;
@@ -108,4 +106,52 @@ public class WmsInventory implements Serializable {
 	@Excel(name = "仓库id", width = 15)
     @Schema(description = "仓库id")
     private java.lang.String warehouseId;
+
+	/**商品编码*/
+	@Excel(name = "商品编码", width = 15)
+    @Schema(description = "商品编码")
+    @TableField(exist = false)
+    private java.lang.String productCode;
+
+	/**商品名称*/
+	@Excel(name = "商品名称", width = 15)
+    @Schema(description = "商品名称")
+    @TableField(exist = false)
+    private java.lang.String productName;
+
+	/**货主编码*/
+	@Excel(name = "货主编码", width = 15)
+    @Schema(description = "货主编码")
+    @TableField(exist = false)
+    private java.lang.String ownerCode;
+
+    /**货主名称*/
+	@Excel(name = "货主名称", width = 15)
+    @Schema(description = "货主名称")
+    @TableField(exist = false)
+    private java.lang.String ownerName;
+
+	/**仓库名称*/
+	@Excel(name = "仓库名称", width = 15)
+    @Schema(description = "仓库名称")
+    @TableField(exist = false)
+    private java.lang.String warehouseName;
+
+	/**储位类型*/
+	@Excel(name = "储位类型", width = 15)
+    @Schema(description = "储位类型")
+    @TableField(exist = false)
+    private java.lang.String locationType;
+
+	/**储区类型*/
+	@Excel(name = "储区类型", width = 15)
+    @Schema(description = "储区类型")
+    @TableField(exist = false)
+    private java.lang.String zoneType;
+
+	/**储区名称*/
+	@Excel(name = "储区名称", width = 15)
+    @Schema(description = "储区名称")
+    @TableField(exist = false)
+    private java.lang.String zoneName;
 }

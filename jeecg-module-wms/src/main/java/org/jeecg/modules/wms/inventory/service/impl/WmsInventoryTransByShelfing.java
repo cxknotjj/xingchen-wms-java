@@ -94,7 +94,7 @@ public class WmsInventoryTransByShelfing extends ServiceImpl<WmsInventoryTransMa
             targetInventory.setBatchNumber(batchNumber);
             targetInventory.setStockInTime(inventoryTransParam.getOperationTime());
             targetInventory.setExpiryDate(inventoryTransParam.getExpiryDate());
-            targetInventory.setIsSellable(WarehouseDictEnum.INVENTORY_ATTRIBUTE_GOOD.getCode());
+            targetInventory.setIsSellable("1");
             targetInventory.setWarehouseId(inventoryTransParam.getWarehouseId());
             wmsInventoryService.save(targetInventory);
         } else {
