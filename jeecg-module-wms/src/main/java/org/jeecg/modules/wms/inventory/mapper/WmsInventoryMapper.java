@@ -14,4 +14,11 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface WmsInventoryMapper extends BaseMapper<WmsInventory> {
 
+    /**
+     * 查询库存列表
+     * @param wmsInventory 查询条件
+     * @return 库存列表
+     */
+    List<WmsInventory> queryInventoryList(@Param("wmsInventory") WmsInventory wmsInventory);
+
 }

@@ -2,4 +2,56 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.jeecg.modules.wms.inventory.mapper.WmsInventoryMapper">
 
+    <select id="queryInventoryList" parameterType="org.jeecg.modules.wms.inventory.entity.WmsInventory" resultType="org.jeecg.modules.wms.inventory.entity.WmsInventory">
+        SELECT 
+            i.id,
+            i.owner_id,
+            i.product_id,
+            i.location_code,
+            i.stock_quantity,
+            i.allocated_quantity,
+            i.available_quantity,
+            i.batch_number,
+            i.stock_in_time,
+            i.expiry_date,
+            i.is_sellable,
+            i.warehouse_id,
+            i.create_by,
+            i.create_time,
+            i.update_by,
+            i.update_time,
+            i.sys_org_code,
+            p.product_code,
+            p.product_name,
+            wo.owner_name,
+            wo.owner_code,
+            w.warehouse_name,
+            l.location_type,
+            z.zone_type,
+            z.zone_name
+        FROM wms_inventory i
+        INNER JOIN wms_products p ON i.product_id = p.id
+        INNER JOIN wms_warehouses w ON i.warehouse_id = w.id
+        INNER JOIN wms_storage_locations l ON i.location_code = l.location_code
+        INNER JOIN wms_storage_zones z ON l.zone_id = z.id
+        INNER JOIN wms_cargo_owners wo ON p.owner_id = wo.id
+        WHERE 1=1
+        <if test="wmsInventory.productId != null and wmsInventory.productId != ''">
+            AND i.product_id = #{wmsInventory.productId}
+        </if>
+        <if test="wmsInventory.locationCode != null and wmsInventory.locationCode != ''">
+            AND i.location_code = #{wmsInventory.locationCode}
+        </if>
+        <if test="wmsInventory.batchNumber != null and wmsInventory.batchNumber != ''">
+            AND i.batch_number = #{wmsInventory.batchNumber}
+        </if>
+        <if test="wmsInventory.warehouseId != null and wmsInventory.warehouseId != ''">
+            AND i.warehouse_id = #{wmsInventory.warehouseId}
+        </if>
+        <if test="wmsInventory.isSellable != null and wmsInventory.isSellable != ''">
+            AND i.is_sellable = #{wmsInventory.isSellable}
+        </if>
+        ORDER BY i.create_time DESC
+    </select>
+
 </mapper>

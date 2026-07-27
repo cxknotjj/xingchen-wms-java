@@ -1,5 +1,6 @@
 package org.jeecg.modules.wms.inventory.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.jeecg.modules.wms.inventory.entity.WmsInventory;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -18,4 +19,13 @@ public interface IWmsInventoryService extends IService<WmsInventory> {
      @return
      */
     public WmsInventory getInventoryByUniqueKey(String productId, String locationCode,String batchNumber);
+
+    /**
+     * 分页列表查询
+     * @param wmsInventory
+     * @param pageNo
+     * @param pageSize
+     * @return
+     */
+    IPage<WmsInventory> queryInventoryList(WmsInventory wmsInventory, Integer pageNo, Integer pageSize);
 }

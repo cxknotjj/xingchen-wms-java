@@ -69,9 +69,7 @@ public class WmsInventoryController extends JeecgController<WmsInventory, IWmsIn
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
 								   HttpServletRequest req) {
-        QueryWrapper<WmsInventory> queryWrapper = QueryGenerator.initQueryWrapper(wmsInventory, req.getParameterMap());
-		Page<WmsInventory> page = new Page<WmsInventory>(pageNo, pageSize);
-		IPage<WmsInventory> pageList = wmsInventoryService.page(page, queryWrapper);
+		IPage<WmsInventory> pageList = wmsInventoryService.queryInventoryList(wmsInventory,pageNo, pageSize);
 		return Result.OK(pageList);
 	}
 	
