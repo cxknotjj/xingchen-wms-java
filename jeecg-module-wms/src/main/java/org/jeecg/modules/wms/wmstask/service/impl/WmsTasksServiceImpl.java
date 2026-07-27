@@ -17,8 +17,8 @@ import org.jeecg.modules.wms.inorder.entity.WmsStockInOrders;
 import org.jeecg.modules.wms.inorder.service.IWmsStockInOrderItemsService;
 import org.jeecg.modules.wms.inorder.service.IWmsStockInOrdersService;
 import org.jeecg.modules.wms.inventory.entity.WmsInventoryTrans;
-import org.jeecg.modules.wms.inventory.service.IWmsInventoryTransService;
 import org.jeecg.modules.wms.inventory.service.impl.WmsInventoryTransByReceiving;
+import org.jeecg.modules.wms.inventory.service.impl.WmsInventoryTransByShelfing;
 import org.jeecg.modules.wms.inventory.vo.WmsInventoryTransParam;
 import org.jeecg.modules.wms.warehouse.entity.WmsStorageLocations;
 import org.jeecg.modules.wms.warehouse.service.IWmsStorageLocationsService;
@@ -36,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @Description: 任务表
@@ -60,11 +62,12 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
     @Autowired
     private WmsInventoryTransByReceiving wmsInventoryTransByReceiving;
 
+    @Autowired
+    private WmsInventoryTransByShelfing wmsInventoryTransByShelfing;
+
 
     @Autowired
     private RedisUtil redisUtil;
-    @Autowired
-    private IWmsInventoryTransService iWmsInventoryTransService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -196,6 +199,70 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
         wmsInventoryTransByReceiving.transfer(inventoryTransParam);
 
         // 如果该入库单收货完成，那么创建上架任务
+        String orderId = tasks.getStockInOrderId();
+        WmsStockInOrders stockInOrder = wmsStockInOrdersService.getById(orderId);
+        if (stockInOrder != null && WarehouseDictEnum.INBOUND_RECEIVED.getCode().equals(stockInOrder.getStatus())) {
+            // 优先使用任务中的操作人，为空则使用记录中的操作人
+            String operator = tasks.getOperator();
+            if (operator == null || operator.isEmpty()) {
+                operator = wmsTasksRecords.getOperator();
+            }
+            createShelfTask(orderId, operator);
+        }
+    }
+
+    /**
+     * 创建上架任务
+     * @param stockInOrderId
+     * @param operator
+     */
+    private void createShelfTask(String stockInOrderId,String operator) {
+
+        // 1. 查询入库单，校验状态是否为收货完成
+        WmsStockInOrders stockInOrder = wmsStockInOrdersService.getById(stockInOrderId);
+        if (!WarehouseDictEnum.INBOUND_RECEIVED.getCode().equals(stockInOrder.getStatus())) {
+            throw new JeecgBootException("入库单状态不是收货完成，不能创建上架任务");
+        }
+
+        // 2. 查询该入库单下所有的收货任务记录，注意必须是良品且已收货（关键！）
+        LambdaQueryWrapper<WmsTasksRecords> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(WmsTasksRecords::getStockInOrderId, stockInOrderId)
+                .eq(WmsTasksRecords::getTaskType, WarehouseDictEnum.TASK_TYPE_RECEIVING.getCode())
+                .eq(WmsTasksRecords::getInventoryAttribute, WarehouseDictEnum.INVENTORY_ATTRIBUTE_GOOD.getCode()); // 只处理良品
+
+        List<WmsTasksRecords> receiveRecords = wmsTasksRecordsService.list(queryWrapper);
+
+        if (receiveRecords.isEmpty()) {
+            throw new JeecgBootException("没有找到收货任务记录");
+        }
+
+        // 3. 一条收货记录对应一个上架任务（核心逻辑）
+        List<WmsTasks> putawayTasks = new ArrayList<>();
+        for (WmsTasksRecords record : receiveRecords) {
+            WmsTasks task = new WmsTasks();
+            task.setTaskNumber(generateTaskCode());
+            task.setTaskType(WarehouseDictEnum.TASK_TYPE_PUTAWAY.getCode());
+            task.setTaskStatus(WarehouseDictEnum.TASK_STATUS_CREATED.getCode());
+            task.setProductId(record.getProductId());
+            task.setQuantity(record.getExecQuantity());  // 直接使用收货数量
+            task.setCompletedQuantity(0);
+            task.setStockInOrderId(stockInOrderId);
+            task.setOperator(operator);
+            task.setStockInOrderItemId(record.getStockInOrderItemId());
+            task.setTargetWarehouseId(record.getTargetWarehouseId());
+
+            // 关键：来源储位（收货时存放的暂存区）
+            task.setSourceLocationCode(record.getTargetLocationCode());
+
+            // 批次和保质期信息
+            task.setBatchNumber(record.getBatchNumber());
+            task.setExpiryDate(record.getExpiryDate());
+
+            putawayTasks.add(task);
+        }
+
+        // 5. 批量保存上架任务
+        this.saveBatch(putawayTasks);
     }
 
     @Override
@@ -212,7 +279,7 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
 
         // 收获的总数量不能大于采购数量
         if (completedQuantity + executeQuantity > wmsTasks.getQuantity()) {
-            throw new JeecgBootException("收货数量不能大于采购数量");
+            throw new JeecgBootException("执行数量不能大于采购数量");
         }
 
         // 前端传入的库存属性
@@ -278,5 +345,36 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
             }
         }
         return wmsTasks;
+    }
+
+    @Override
+    public void shelf(WmsTasksRecords wmsTasksRecords) {
+        // 上架只针对良品，直接设置为良品
+        wmsTasksRecords.setInventoryAttribute(WarehouseDictEnum.INVENTORY_ATTRIBUTE_GOOD.getCode());
+        // 执行任务，向任务表更新上架数量，如果上架完成更新状态为已完成，记录上架记录
+        WmsTasks tasks = execute(wmsTasksRecords);
+
+        // 更新入库单明细中的上架数量，当上架数量等于良品收货数量时，更新状态为上架完成。
+        wmsStockInOrderItemsService.updateShelfStatus(tasks.getStockInOrderItemId());
+        // 更新入库单中上架数量，如果所有明细的状态为上架完成，那么入库单的状态为上架完成。
+        wmsStockInOrdersService.updateShelvedStatus(tasks.getStockInOrderId());
+        // 增加库存
+        WmsInventoryTransParam inventoryTransParam = new WmsInventoryTransParam();
+        inventoryTransParam.setProductId(tasks.getProductId()); // 商品id
+        inventoryTransParam.setExecQuantity(wmsTasksRecords.getExecQuantity()); // 执行数量
+        inventoryTransParam.setTargetLocationCode(wmsTasksRecords.getTargetLocationCode()); // 目标储位编码
+        inventoryTransParam.setTransactionType(WarehouseDictEnum.INVENTORY_PUTAWAY.getCode()); // 库存变更类型
+        inventoryTransParam.setWarehouseId(tasks.getTargetWarehouseId()); // 仓库id
+        inventoryTransParam.setBatchNumber(wmsTasksRecords.getBatchNumber()); // 批次号
+        inventoryTransParam.setOperator(tasks.getOperator()); // 执行人
+        inventoryTransParam.setOperationTime(new Date());
+        // 上架只针对良品，直接设置为可售
+        inventoryTransParam.setIsSellable("1"); //可售
+        // 保质期
+        inventoryTransParam.setExpiryDate(wmsTasksRecords.getExpiryDate());
+        // 原储位（从任务中获取收货时存放的暂存区）
+        inventoryTransParam.setSourceLocationCode(tasks.getSourceLocationCode());
+        // 调整库存并创建库存记录
+        wmsInventoryTransByShelfing.transfer(inventoryTransParam);
     }
 }
