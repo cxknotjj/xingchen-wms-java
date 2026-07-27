@@ -46,4 +46,10 @@ public interface IWmsTasksService extends IService<WmsTasks> {
      * 执行任务
      */
     public WmsTasks execute(WmsTasksRecords wmsTasksRecords);
+
+    /**
+     * 上架方法
+     * @param wmsTasksRecords
+     */
+    void shelf(WmsTasksRecords wmsTasksRecords);
 }

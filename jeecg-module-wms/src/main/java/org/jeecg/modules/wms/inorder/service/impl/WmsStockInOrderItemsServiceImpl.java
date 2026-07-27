@@ -74,4 +74,41 @@ public class WmsStockInOrderItemsServiceImpl extends ServiceImpl<WmsStockInOrder
 			throw new RuntimeException("更新入库单明细失败");
 		}
 	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void updateShelfStatus(String stockInOrderItemId) {
+		// 更新入库单明细中的上架数量，当上架数量等于良品收货数量时，更新状态为上架完成
+		// 查询入库单明细
+		WmsStockInOrderItems stockInOrderItems = wmsStockInOrderItemsMapper.selectById(stockInOrderItemId);
+
+		// 根据入库单明细id找到关联的上架任务记录
+		LambdaQueryWrapper<WmsTasksRecords> queryWrapper = new LambdaQueryWrapper<>();
+		queryWrapper.eq(WmsTasksRecords::getStockInOrderItemId, stockInOrderItemId)
+				.eq(WmsTasksRecords::getTaskType, WarehouseDictEnum.TASK_TYPE_PUTAWAY.getCode());
+
+		List<WmsTasksRecords> recordsList = wmsTasksRecordsService.list(queryWrapper);
+
+		// 计算上架数量
+		int shelvedQuantity = recordsList.stream()
+				.mapToInt(WmsTasksRecords::getExecQuantity)
+				.sum();
+
+		// 更新上架数量
+		stockInOrderItems.setShelvedQuantity(shelvedQuantity);
+
+		// 获取良品收货数量（receivedQuantity）
+		int receivedQuantity = stockInOrderItems.getReceivedQuantity() != null ? stockInOrderItems.getReceivedQuantity() : 0;
+
+		// 当上架数量等于良品收货数量时，更新状态为上架完成
+		if (shelvedQuantity >= receivedQuantity) {
+			stockInOrderItems.setStatus(WarehouseDictEnum.INBOUND_DETAIL_PUTAWAYED.getCode());
+		}
+
+		// 更新入库单明细
+		boolean b = this.updateById(stockInOrderItems);
+		if (!b) {
+			throw new RuntimeException("更新入库单明细上架状态失败");
+		}
+	}
 }

@@ -24,4 +24,9 @@ public interface IWmsStockInOrderItemsService extends IService<WmsStockInOrderIt
 	 * 更新入库单明细中的收获数量
 	 */
 	public void updateReceivedStatus(String stockInOrderItemId);
+
+	/**
+	 * 更新入库单明细中的上架数量
+	 */
+	public void updateShelfStatus(String stockInOrderItemId);
 }

@@ -72,4 +72,11 @@ public interface IWmsStockInOrdersService extends IService<WmsStockInOrders> {
 	 */
 	String updateReceivedStatus(String stockInOrderId);
 
+	/**
+	 * 更新上架完成状态
+	 * @param stockInOrderId 入库单id
+	 * @return 更新后的入库单状态
+	 */
+	String updateShelvedStatus(String stockInOrderId);
+
 }

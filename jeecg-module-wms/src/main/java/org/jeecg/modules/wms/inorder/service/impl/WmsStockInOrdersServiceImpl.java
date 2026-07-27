@@ -250,7 +250,40 @@ public class WmsStockInOrdersServiceImpl extends ServiceImpl<WmsStockInOrdersMap
 
 	}
 
-    /**
+    @Override
+	public String updateShelvedStatus(String stockInOrderId) {
+		// 查询入库单
+		WmsStockInOrders wmsStockInOrders = getById(stockInOrderId);
+
+		// 查询入库单明细
+		List<WmsStockInOrderItems> wmsStockInOrderItems = stockInOrderItemsService.selectByMainId(stockInOrderId);
+
+		// 检查是否所有明细都已上架完成
+		boolean allShelved = wmsStockInOrderItems.stream()
+				.allMatch(item -> WarehouseDictEnum.INBOUND_DETAIL_PUTAWAYED.getCode().equals(item.getStatus()));
+
+		// 如果全部上架完成则为上架完成状态，否则为上架中状态
+		String status = allShelved 
+				? WarehouseDictEnum.INBOUND_PUTAWAYED.getCode() 
+				: WarehouseDictEnum.INBOUND_PUTAWAYING.getCode();
+		wmsStockInOrders.setStatus(status);
+
+		// 计算已上架总量
+		int totalShelvedQuantity = wmsStockInOrderItems.stream()
+				.mapToInt(item -> item.getShelvedQuantity() != null ? item.getShelvedQuantity() : 0)
+				.sum();
+		wmsStockInOrders.setTotalShelvedQuantity(totalShelvedQuantity);
+
+		boolean b = updateById(wmsStockInOrders);
+		if (!b) {
+			throw new JeecgBootException("更新入库单上架状态失败");
+		}
+		this.updateById(wmsStockInOrders);
+
+		return status;
+	}
+
+	/**
 	 * 生成入库单号 ASN+8位年月日+4位序号
 	 */
 	public String generateOrderNumber() {
