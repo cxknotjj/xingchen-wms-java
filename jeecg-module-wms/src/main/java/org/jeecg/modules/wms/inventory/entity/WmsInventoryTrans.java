@@ -22,7 +22,7 @@ import lombok.experimental.Accessors;
 /**
  * @Description: 库存变更表
  * @Author: jeecg-boot
- * @Date:   2026-07-26
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 @Data
@@ -36,62 +36,62 @@ public class WmsInventoryTrans implements Serializable {
 	/**主键*/
 	@TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键")
-    private java.lang.String id;
+    private String id;
 	/**创建人*/
     @Schema(description = "创建人")
-    private java.lang.String createBy;
+    private String createBy;
 	/**创建日期*/
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "创建日期")
-    private java.util.Date createTime;
+    private Date createTime;
 	/**更新人*/
     @Schema(description = "更新人")
-    private java.lang.String updateBy;
+    private String updateBy;
 	/**更新日期*/
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "更新日期")
-    private java.util.Date updateTime;
+    private Date updateTime;
 	/**所属部门*/
     @Schema(description = "所属部门")
-    private java.lang.String sysOrgCode;
+    private String sysOrgCode;
 	/**商品id*/
 	@Excel(name = "商品id", width = 15)
     @Schema(description = "商品id")
-    private java.lang.String productId;
+    private String productId;
 	/**储位编码*/
 	@Excel(name = "储位编码", width = 15)
     @Schema(description = "储位编码")
-    private java.lang.String locationCode;
+    private String locationCode;
 	/**容器编码*/
 	@Excel(name = "容器编码", width = 15)
     @Schema(description = "容器编码")
-    private java.lang.String containerCode;
+    private String containerCode;
 	/**变更数量*/
 	@Excel(name = "变更数量", width = 15)
     @Schema(description = "变更数量")
-    private java.lang.Integer changeQuantity;
+    private Integer changeQuantity;
 	/**变更类型*/
 	@Excel(name = "变更类型", width = 15)
     @Schema(description = "变更类型")
-    private java.lang.String transactionType;
+    private String transactionType;
 	/**关联单据号*/
 	@Excel(name = "关联单据号", width = 15)
     @Schema(description = "关联单据号")
-    private java.lang.String referenceNumber;
+    private String referenceNumber;
 	/**备注*/
 	@Excel(name = "备注", width = 15)
     @Schema(description = "备注")
-    private java.lang.String remarks;
+    private String remarks;
 	/**变更时间*/
 	@Excel(name = "变更时间", width = 20, format = "yyyy-MM-dd HH:mm:ss")
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "变更时间")
-    private java.util.Date transactionTime;
+    private Date transactionTime;
 	/**批次号*/
 	@Excel(name = "批次号", width = 15)
     @Schema(description = "批次号")
-    private java.lang.String batchNumber;
+    private String batchNumber;
 }

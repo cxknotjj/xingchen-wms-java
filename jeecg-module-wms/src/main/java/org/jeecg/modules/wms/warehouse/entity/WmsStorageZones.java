@@ -18,16 +18,16 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * @Description: 储区表
+ * @Description: 库区表
  * @Author: jeecg-boot
- * @Date:   2025-09-03
+ * @Date:   2025-04-09
  * @Version: V1.0
  */
 @Data
 @TableName("wms_storage_zones")
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@Schema(description="储区表")
+@Schema(description="库区表")
 public class WmsStorageZones implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -64,10 +64,10 @@ public class WmsStorageZones implements Serializable {
     @Schema(description = "库区类型")
     @Dict(dicCode = "zone_type")
     private String zoneType;
-	/**状态: 创建,禁用, 启用*/
-	@Excel(name = "状态: 创建,禁用, 启用", width = 15, dicCode = "dict_item_status")
+	/**状态:创建,启用,禁用*/
+	@Excel(name = "状态:创建,启用,禁用", width = 15, dicCode = "dict_item_status")
 	@Dict(dicCode = "wms_status")
-    @Schema(description = "状态: 创建,禁用, 启用")
+    @Schema(description = "状态:创建,启用,禁用")
     private String status;
 	/**是否可售库存 0-否, 1-是*/
 	@Excel(name = "是否可售库存 0-否, 1-是", width = 15, dicCode = "yn")
@@ -79,11 +79,7 @@ public class WmsStorageZones implements Serializable {
     @Schema(description = "所属仓库")
     private String warehouseId;
 
-
-    @Schema(description = "所属仓库名称")
+    //仓库名称用于显示
     @TableField(exist = false)
     private String warehouseName;
-
-
-
 }

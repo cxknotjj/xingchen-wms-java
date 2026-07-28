@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.jeecg.modules.wms.warehouse.mapper.WmsStorageZonesMapper">
-    <select id="queryList" parameterType="org.jeecg.modules.wms.warehouse.entity.WmsStorageZones"
-        resultType="org.jeecg.modules.wms.warehouse.entity.WmsStorageZones">
-        select a.*,b.warehouse_name from wms_storage_zones a ,wms_warehouses b where a.warehouse_id=b.id
+    <!--根据入库单号、商品名称等综合查询条件查询入库单明细-->
+    <select id="queryList" resultType="org.jeecg.modules.wms.warehouse.entity.WmsStorageZones" parameterType="org.jeecg.modules.wms.warehouse.entity.WmsStorageZones">
+        select a.*,
+        b.warehouse_name
+        FROM  wms_storage_zones a,wms_warehouses b
+        WHERE
+        a.warehouse_id=b.id
         <if test="warehouseName != null and warehouseName != ''">
             AND b.warehouse_name LIKE concat('%',#{warehouseName},'%')
         </if>

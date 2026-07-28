@@ -32,7 +32,7 @@ public class WmsInventoryTransParam {
     /**仓库id*/
     @Excel(name = "仓库id", width = 15)
     @Schema(description = "仓库id")
-    private String warehouseId;
+    private java.lang.String warehouseId;
     /**来源储位编码*/
     @Excel(name = "来源储位编码", width = 15)
     @Schema(description = "来源储位编码")

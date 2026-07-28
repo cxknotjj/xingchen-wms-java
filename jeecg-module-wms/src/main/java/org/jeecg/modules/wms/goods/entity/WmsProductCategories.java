@@ -14,14 +14,13 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.jeecgframework.poi.excel.annotation.Excel;
 import org.jeecg.common.aspect.annotation.Dict;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.UnsupportedEncodingException;
 
 /**
  * @Description: 商品类别
  * @Author: jeecg-boot
- * @Date:   2026-07-22
+ * @Date:   2025-04-13
  * @Version: V1.0
  */
 @Data
@@ -57,6 +56,9 @@ public class WmsProductCategories implements Serializable {
 	@Excel(name = "类别名称", width = 15)
     @Schema(description = "类别名称")
     private String categoryName;
+	@Excel(name = "类别编码", width = 15)
+    @Schema(description = "类别编码")
+    private String categoryCode;
 	/**父节点*/
 	@Excel(name = "父节点", width = 15)
     @Schema(description = "父节点")
@@ -71,8 +73,4 @@ public class WmsProductCategories implements Serializable {
 	@Dict(dicCode = "yn")
     @Schema(description = "是否有子节点")
     private String hasChild;
-	/**节点编码*/
-	@Excel(name = "节点编码", width = 15)
-    @Schema(description = "节点编码")
-    private String categoryCode;
 }

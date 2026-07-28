@@ -23,12 +23,11 @@ import java.util.List;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * @Description: 入库单主表
  * @Author: jeecg-boot
- * @Date:   2025-09-03
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 @Service
@@ -38,12 +37,43 @@ public class WmsStockInOrdersServiceImpl extends ServiceImpl<WmsStockInOrdersMap
 	private WmsStockInOrdersMapper wmsStockInOrdersMapper;
 	@Autowired
 	private WmsStockInOrderItemsMapper wmsStockInOrderItemsMapper;
-
-	@Autowired
-	protected IWmsStockInOrderItemsService stockInOrderItemsService;
-
 	@Autowired
 	private RedisUtil redisUtil;
+
+	@Autowired
+	private IWmsStockInOrderItemsService stockInOrderItemsService;
+
+	@Override
+	public void add(WmsStockInOrders wmsStockInOrders) {
+		//生成入库单号
+		String orderNumber = generateOrderNumber();
+		wmsStockInOrders.setOrderNumber(orderNumber);
+		//设置入库单状态为初始状态
+		wmsStockInOrders.setStatus(WarehouseDictEnum.INBOUND_INITIAL.getCode());
+		//入库单表插入一条记录
+		save(wmsStockInOrders);
+	}
+
+	/**
+	 * 生成入库单号
+	 */
+	public String generateOrderNumber() {
+		//8位年月日+4位流水号
+		String time = DateUtils.now().substring(0,10).replace("-", "");
+		//4位流水号
+		String key = "wms:asn_number"+time;
+		//获取流水号
+		long incr = redisUtil.incr(key, 1);
+		if(incr == 1){
+			//如果是第一次设置流水号则设置过期 时间为24小时+10秒
+			redisUtil.expire(key, 24*60*60+10);
+		}
+		String serialNumber = String.format("%04d", incr);
+		//入库单号
+		String orderNumber = "ASN"+time + serialNumber;
+		return orderNumber;
+	}
+
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
@@ -57,108 +87,6 @@ public class WmsStockInOrdersServiceImpl extends ServiceImpl<WmsStockInOrdersMap
 			}
 		}
 	}
-
-	@Override
-	@Transactional(rollbackFor = Exception.class)
-	public void updateMain(WmsStockInOrders wmsStockInOrders,List<WmsStockInOrderItems> wmsStockInOrderItemsList) {
-		String status = wmsStockInOrders.getStatus();
-		//入库单初始状态、审核失败状态可以修改
-		if(!status.equals(WarehouseDictEnum.INBOUND_INITIAL.getCode())
-				&& !status.equals(WarehouseDictEnum.INBOUND_REJECTED.getCode())){
-			throw new JeecgBootException("入库单状态为“创建”或审核失败状态方可修改");
-		}
-		//入库单明细至少添加一条
-		if(wmsStockInOrderItemsList==null || wmsStockInOrderItemsList.size()<1){
-			throw new JeecgBootException("入库单明细至少添加一条");
-		}
-
-		//1.先删除子表数据
-		wmsStockInOrderItemsMapper.deleteByMainId(wmsStockInOrders.getId());
-
-		//定义一个汇总后的商品明细list
-		List<WmsStockInOrderItems> mergeList = new ArrayList<>();
-
-		//对子表数据进行汇总
-		//根据商品id汇总 <key 商品id,value 商品列表>
-		Map<String, List<WmsStockInOrderItems>> collect = wmsStockInOrderItemsList.stream().collect(Collectors.groupingBy(WmsStockInOrderItems::getProductId));
-		collect.entrySet().stream().forEach(entry -> {
-			//商品id
-			String key = entry.getKey();
-			List<WmsStockInOrderItems> value = entry.getValue();
-			if(value.size()>1){
-				//汇总
-				int expectedQuantitySum = value.stream().mapToInt(WmsStockInOrderItems::getExpectedQuantity).sum();
-				WmsStockInOrderItems wmsStockInOrderItems = new WmsStockInOrderItems();
-				BeanUtils.copyProperties(value.get(0),wmsStockInOrderItems);
-				wmsStockInOrderItems.setProductId(key);
-				wmsStockInOrderItems.setExpectedQuantity(expectedQuantitySum);
-				wmsStockInOrderItems.setOrderId(wmsStockInOrders.getId());
-				mergeList.add(wmsStockInOrderItems);
-			}else{
-				WmsStockInOrderItems wmsStockInOrderItems = value.get(0);
-				wmsStockInOrderItems.setOrderId(wmsStockInOrders.getId());
-				mergeList.add(wmsStockInOrderItems);
-			}
-		});
-
-
-		//2.子表数据重新插入
-		for(WmsStockInOrderItems entity:mergeList) {
-			//外键设置
-			entity.setOrderId(wmsStockInOrders.getId());
-			wmsStockInOrderItemsMapper.insert(entity);
-		}
-		//将mergeList里边的采购数量进行汇总
-		int totalExpectedQuantity = mergeList.stream().mapToInt(WmsStockInOrderItems::getExpectedQuantity).sum();
-		wmsStockInOrders.setTotalExpectedQuantity(totalExpectedQuantity);
-		//修改入库单表的数据
-		wmsStockInOrdersMapper.updateById(wmsStockInOrders);
-	}
-//	@Override
-//	@Transactional(rollbackFor = Exception.class)
-//	public void updateMain(WmsStockInOrders wmsStockInOrders,List<WmsStockInOrderItems> wmsStockInOrderItemsList) {
-//		//修改入库单表的数据
-//		wmsStockInOrdersMapper.updateById(wmsStockInOrders);
-//
-//		//1.先删除子表数据
-//		wmsStockInOrderItemsMapper.deleteByMainId(wmsStockInOrders.getId());
-//
-//		//2.子表数据重新插入
-//		if(wmsStockInOrderItemsList!=null && wmsStockInOrderItemsList.size()>0) {
-//			for(WmsStockInOrderItems entity:wmsStockInOrderItemsList) {
-//				//外键设置
-//				entity.setOrderId(wmsStockInOrders.getId());
-//				wmsStockInOrderItemsMapper.insert(entity);
-//			}
-//		}
-//	}
-
-	@Override
-	@Transactional(rollbackFor = Exception.class)
-	public void delMain(String id) {
-		wmsStockInOrderItemsMapper.deleteByMainId(id);
-		wmsStockInOrdersMapper.deleteById(id);
-	}
-
-	@Override
-	@Transactional(rollbackFor = Exception.class)
-	public void delBatchMain(Collection<? extends Serializable> idList) {
-		for(Serializable id:idList) {
-			wmsStockInOrderItemsMapper.deleteByMainId(id.toString());
-			wmsStockInOrdersMapper.deleteById(id);
-		}
-	}
-
-	@Override
-	public void add(WmsStockInOrders wmsStockInOrders) {
-
-		//生成入库单号 ASN+8位年月日+4位序号
-		String orderNumber = generateOrderNumber();
-		wmsStockInOrders.setOrderNumber(orderNumber);
-		baseMapper.insert(wmsStockInOrders);
-
-	}
-
 	/**
 	 * 审核入库单
 	 * @param wmsStockInOrdersPage
@@ -213,95 +141,147 @@ public class WmsStockInOrdersServiceImpl extends ServiceImpl<WmsStockInOrdersMap
 		wmsStockInOrdersEntity.setStatus(WarehouseDictEnum.INBOUND_SUBMIT_AUDIT.getCode());
 		updateById(wmsStockInOrdersEntity);
 	}
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void updateMain(WmsStockInOrders wmsStockInOrders,List<WmsStockInOrderItems> wmsStockInOrderItemsList) {
+		//初始状态、审核失败状态可以修改
+		if(!(WarehouseDictEnum.INBOUND_INITIAL.getCode().equals(wmsStockInOrders.getStatus())
+				|| WarehouseDictEnum.INBOUND_REJECTED.getCode().equals(wmsStockInOrders.getStatus()))){
+			throw new JeecgBootException("非初始状态、审核失败状态入库单不允许修改");
+		}
 
-    @Override
-    public String updateReceivedStatus(String stockInOrderId) {
+		if(wmsStockInOrderItemsList==null || wmsStockInOrderItemsList.size()<=0){
+			//抛出异常
+			throw new JeecgBootException("请选择入库单明细");
+		}
+		wmsStockInOrdersMapper.updateById(wmsStockInOrders);
 
-		//查询入库单
-		WmsStockInOrders wmsStockInOrders = getById(stockInOrderId);
+		//1.先删除子表数据
+		wmsStockInOrderItemsMapper.deleteByMainId(wmsStockInOrders.getId());
 
-		//查询入库单明细
-		List<WmsStockInOrderItems> wmsStockInOrderItems = stockInOrderItemsService.selectByMainId(stockInOrderId);
+		//对入库单明细的数据按商品分组(对明细中重复的商品进行合并 )
+		//<商品id,入库单明细>
+		Map<String, List<WmsStockInOrderItems>> collect = wmsStockInOrderItemsList.stream()
+				.filter(item -> item.getProductId() != null)
+				.collect(Collectors.groupingBy(WmsStockInOrderItems::getProductId));
+		//合并结果集
+		List<WmsStockInOrderItems> mergeList = new ArrayList<>();
+		//遍历collect
+		for (Map.Entry<String, List<WmsStockInOrderItems>> entry : collect.entrySet()) {
+			List<WmsStockInOrderItems> list = entry.getValue();
+			//如果list集合大小1
+			if(list.size() >1){
+				//计算采购总数
+				int expectedQuantity = list.stream().mapToInt(WmsStockInOrderItems::getExpectedQuantity).sum();
+				//合并后的对象
+				WmsStockInOrderItems merge = new WmsStockInOrderItems();
+				WmsStockInOrderItems wmsStockInOrderItems = list.get(0);
+				BeanUtils.copyProperties(wmsStockInOrderItems, merge);
+				merge.setExpectedQuantity(expectedQuantity);
+				mergeList.add(merge);
 
-		//只要存在一个未收货完成的记录，状态就是未收货完成，否则 就是收货完成
-		boolean b = wmsStockInOrderItems.stream().anyMatch(item -> !item.getStatus().equals(WarehouseDictEnum.INBOUND_DETAIL_RECEIVED.getCode()));
+			}else{
+				mergeList.add(list.get(0));
+			}
+		}
+		//计算预期采购总量
+		int totalExpectedQuantity = mergeList.stream().mapToInt(WmsStockInOrderItems::getExpectedQuantity).sum();
+		//2.子表数据重新插入
+		for(WmsStockInOrderItems entity:mergeList) {
+			//外键设置
+			entity.setOrderId(wmsStockInOrders.getId());
+			//状态为初始状态
+			entity.setStatus(WarehouseDictEnum.INBOUND_DETAIL_INITIAL.getCode());
+			wmsStockInOrderItemsMapper.insert(entity);
+		}
+		wmsStockInOrders.setTotalExpectedQuantity(totalExpectedQuantity);
+		wmsStockInOrdersMapper.updateById(wmsStockInOrders);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void delMain(String id) {
+		wmsStockInOrderItemsMapper.deleteByMainId(id);
+		wmsStockInOrdersMapper.deleteById(id);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void delBatchMain(Collection<? extends Serializable> idList) {
+		for(Serializable id:idList) {
+			wmsStockInOrderItemsMapper.deleteByMainId(id.toString());
+			wmsStockInOrdersMapper.deleteById(id);
+		}
+	}
+
+	@Override
+	public String updateReceivedStatus(String stockInOrderId) {
+
+		/**
+		 1.根据入库单id查询入库单明细列表
+		 2.计算良品总数和不良品总数
+		 3.如果入库单明细全部完成收货则入库单状态为完成收货
+		 */
+		WmsStockInOrders stockInOrdersUpdate = getById(stockInOrderId);
+		if(stockInOrdersUpdate==null) {
+			//异常
+			throw new JeecgBootException("入库单不存在");
+		}
+		//当前状态只有是收货中或审核通过时方可更新收货状态
+		if(!(WarehouseDictEnum.INBOUND_RECEIVING.getCode().equals(stockInOrdersUpdate.getStatus())
+				|| WarehouseDictEnum.INBOUND_APPROVED.getCode().equals(stockInOrdersUpdate.getStatus()))){
+			throw new JeecgBootException("非收货中、审核通过状态入库单不允许更新收货状态");
+		}
+		//根据入库单id查询所有入库单明细的完成数量总和
+		List<WmsStockInOrderItems> stockInOrderItems = stockInOrderItemsService.selectByMainId(stockInOrderId);
+		//使用stream流汇总stockInOrderItems中完成收货数量总和
+		int totalCompletedQuantity = stockInOrderItems.stream().mapToInt(WmsStockInOrderItems::getReceivedQuantity).sum();
+		//不良品数量
+		int totalBadQuantity = stockInOrderItems.stream().mapToInt(WmsStockInOrderItems::getDefectiveQuantity).sum();
+		//入库单明细中只要存在一个状态是未完成收货则入库单的状态为收货中
+		boolean b = stockInOrderItems.stream().anyMatch(item -> !WarehouseDictEnum.INBOUND_DETAIL_RECEIVED.getCode().equals(item.getStatus()));
+		//新状态
 		String status = null;
-
 		if(b){
 			status = WarehouseDictEnum.INBOUND_RECEIVING.getCode();
+			stockInOrdersUpdate.setStatus(WarehouseDictEnum.INBOUND_RECEIVING.getCode());
 		}else{
 			status = WarehouseDictEnum.INBOUND_RECEIVED.getCode();
+			stockInOrdersUpdate.setStatus(WarehouseDictEnum.INBOUND_RECEIVED.getCode());
 		}
-		wmsStockInOrders.setStatus(status);
-
-		//从wmsStockInOrderItems计算收货数量
-		int receivedQuantity = wmsStockInOrderItems.stream().mapToInt(WmsStockInOrderItems::getReceivedQuantity).sum();
-
-		//从wmsStockInOrderItems计算不良品数量
-		int defectQuantity = wmsStockInOrderItems.stream().mapToInt(WmsStockInOrderItems::getDefectiveQuantity).sum();
-
-		wmsStockInOrders.setTotalReceivedQuantity(receivedQuantity);
-		wmsStockInOrders.setTotalDefectiveQuantity(defectQuantity);
-
-		boolean b1 = updateById(wmsStockInOrders);
-
-		return status;
-
-
-	}
-
-    @Override
-	public String updateShelvedStatus(String stockInOrderId) {
-		// 查询入库单
-		WmsStockInOrders wmsStockInOrders = getById(stockInOrderId);
-
-		// 查询入库单明细
-		List<WmsStockInOrderItems> wmsStockInOrderItems = stockInOrderItemsService.selectByMainId(stockInOrderId);
-
-		// 检查是否所有明细都已上架完成
-		boolean allShelved = wmsStockInOrderItems.stream()
-				.allMatch(item -> WarehouseDictEnum.INBOUND_DETAIL_PUTAWAYED.getCode().equals(item.getStatus()));
-
-		// 如果全部上架完成则为上架完成状态，否则为上架中状态
-		String status = allShelved 
-				? WarehouseDictEnum.INBOUND_PUTAWAYED.getCode() 
-				: WarehouseDictEnum.INBOUND_PUTAWAYING.getCode();
-		wmsStockInOrders.setStatus(status);
-
-		// 计算已上架总量
-		int totalShelvedQuantity = wmsStockInOrderItems.stream()
-				.mapToInt(item -> item.getShelvedQuantity() != null ? item.getShelvedQuantity() : 0)
-				.sum();
-		wmsStockInOrders.setTotalShelvedQuantity(totalShelvedQuantity);
-
-		boolean b = updateById(wmsStockInOrders);
-		if (!b) {
-			throw new JeecgBootException("更新入库单上架状态失败");
+		stockInOrdersUpdate.setTotalReceivedQuantity(totalCompletedQuantity);
+		stockInOrdersUpdate.setTotalDefectiveQuantity(totalBadQuantity);
+		boolean update = updateById(stockInOrdersUpdate);
+		if(!update){
+			throw new JeecgBootException("更新入库单收货状态失败");
 		}
-		this.updateById(wmsStockInOrders);
-
 		return status;
 	}
-
 	/**
-	 * 生成入库单号 ASN+8位年月日+4位序号
+	 *  更新上架完成状态
+	 *  @param stockInOrderId 入库单id
+	 * @return 更新后的入库单状态
 	 */
-	public String generateOrderNumber() {
-		//2025-09-05 00:00:00 --->20250905
-		String time = DateUtils.now().substring(0, 10).replace("-", "");
-		//key 每天产生一个key
-		String key = "wms:asn_number"+time;
-		long incr = 0;
-		try {
-			incr = redisUtil.incr(key, 1);
-			//设置key的过期时间
-			if(incr==1){
-				redisUtil.expire(key, 24*60*60+30);
-			}
-		} catch (Exception e) {
-			throw new JeecgBootException("生成入库单号出现异常");
-		}
-		return "ASN"+time+String.format("%04d", incr);
+	public String updatePutawayStatus(String stockInOrderId){
+		//根据入库单id查询所有入库单明细的完成数量总和
+		List<WmsStockInOrderItems> stockInOrderItems = stockInOrderItemsService.selectByMainId(stockInOrderId);
+		//使用stream流汇总stockInOrderItems中完成数量总和
+		int totalCompletedQuantity = stockInOrderItems.stream().mapToInt(WmsStockInOrderItems::getShelvedQuantity).sum();
+		//将完成数量更新至入库单
+		WmsStockInOrders stockInOrdersUpdate = getById(stockInOrderId);
+		stockInOrdersUpdate.setTotalShelvedQuantity(totalCompletedQuantity);
+		//入库单状态更新,入库单状态更新为上架完成
+		String status = totalCompletedQuantity == stockInOrdersUpdate.getTotalReceivedQuantity()
+				? WarehouseDictEnum.INBOUND_PUTAWAYED.getCode()
+				: WarehouseDictEnum.INBOUND_PUTAWAYING.getCode();
+		stockInOrdersUpdate.setStatus(status);
 
+		boolean b = updateById(stockInOrdersUpdate);
+		if(b){
+			//返回入库单状态
+			return status;
+		}
+		//异常
+		throw new JeecgBootException("更新入库单上架完成状态失败");
 	}
 }

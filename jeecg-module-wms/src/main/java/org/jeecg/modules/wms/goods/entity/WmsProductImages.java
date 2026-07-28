@@ -18,11 +18,12 @@ import org.jeecg.common.aspect.annotation.Dict;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @Description: 商品图片表
  * @Author: jeecg-boot
- * @Date:   2026-07-23
+ * @Date:   2025-04-15
  * @Version: V1.0
  */
 @Data
@@ -76,4 +77,5 @@ public class WmsProductImages implements Serializable {
 	@Excel(name = "缩略图路径", width = 15)
     @Schema(description = "缩略图路径")
     private String thumbnail;
+
 }

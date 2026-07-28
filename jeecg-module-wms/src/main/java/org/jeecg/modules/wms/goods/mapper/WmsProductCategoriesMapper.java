@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * @Description: 商品类别
  * @Author: jeecg-boot
- * @Date:   2026-07-22
+ * @Date:   2025-04-13
  * @Version: V1.0
  */
 public interface WmsProductCategoriesMapper extends BaseMapper<WmsProductCategories> {

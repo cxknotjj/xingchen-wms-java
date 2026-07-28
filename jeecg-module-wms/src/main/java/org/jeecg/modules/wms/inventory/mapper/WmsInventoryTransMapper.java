@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 /**
  * @Description: 库存变更表
  * @Author: jeecg-boot
- * @Date:   2026-07-26
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 public interface WmsInventoryTransMapper extends BaseMapper<WmsInventoryTrans> {

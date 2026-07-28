@@ -5,6 +5,7 @@ import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.common.system.vo.SelectTreeModel;
 import org.jeecg.modules.wms.goods.entity.WmsProductCategories;
+import org.jeecg.modules.wms.goods.entity.WmsProducts;
 import org.jeecg.modules.wms.goods.mapper.WmsProductCategoriesMapper;
 import org.jeecg.modules.wms.goods.service.IWmsProductCategoriesService;
 import org.springframework.stereotype.Service;
@@ -13,14 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 /**
  * @Description: 商品类别
  * @Author: jeecg-boot
- * @Date:   2026-07-22
+ * @Date:   2025-04-13
  * @Version: V1.0
  */
 @Service
@@ -40,65 +40,30 @@ public class WmsProductCategoriesServiceImpl extends ServiceImpl<WmsProductCateg
 				baseMapper.updateById(parent);
 			}
 		}
-        // 生成category_code
-        String categoryCode = generateCategoryCode(wmsProductCategories.getParentId());
-        wmsProductCategories.setCategoryCode(categoryCode);
-		baseMapper.insert(wmsProductCategories);
+        //设置分类的编号
+        String code = generateCode(wmsProductCategories.getParentId());
+        wmsProductCategories.setCategoryCode( code);
+        baseMapper.insert(wmsProductCategories);
 	}
 
-    /**
-     * generateCategoryCode 生成category_code
-     * @param parentId
-     */
-    private String generateCategoryCode(String parentId) {
-        // 1. 确定前缀 (父级编码)
-        String prefix = "";
-        if (oConvertUtils.isNotEmpty(parentId) && !"0".equals(parentId)) {
-            // 根据 parentId 查询父对象，获取父对象的 category_code
-            WmsProductCategories parent = this.getById(parentId);
-            if (parent == null) {
-                throw new JeecgBootException("父节点不存在");
-            }
-            prefix = parent.getCategoryCode();
+    public String generateCode(String parentId) {
+        //编码规则：第一级分类为两位编号，第二级为四位编码(前两位为父类编号，后两位为自身编号)，依次类推
+        //如果parentId为空则查询所有根节点数量，新节点编号为所有分类数量+1
+        if(oConvertUtils.isEmpty(parentId)||parentId.equals(IWmsProductCategoriesService.ROOT_PID_VALUE)){
+            List<WmsProductCategories> list = baseMapper.selectList(new QueryWrapper<WmsProductCategories>().eq("parent_id", IWmsProductCategoriesService.ROOT_PID_VALUE));
+            int i = list.size() + 1;
+            return String.format("%02d", i);
+        }else{
+            //查询父节点
+            WmsProductCategories parent = baseMapper.selectById(parentId);
+            //查询该节点的下属节点
+            List<WmsProductCategories> list = baseMapper.selectList(new QueryWrapper<WmsProductCategories>().eq("parent_id",parentId));
+            int i = list.size() + 1;
+            //新节点编码为父节点编码+i
+            String code = parent.getCategoryCode() + String.format("%02d", i);
+            return code;
         }
-
-        // 2. 查找当前父节点下的所有子节点，获取最大编号
-        // SQL逻辑: SELECT category_code FROM wms_product_categories WHERE parent_id = #{parentId}
-        List<String> existingCodes = baseMapper.selectList(
-                new LambdaQueryWrapper<WmsProductCategories>()
-                        .eq(WmsProductCategories::getParentId, parentId))
-                .stream()
-                .map(WmsProductCategories::getCategoryCode)
-                .collect(Collectors.toList());
-
-        int maxSeq = 0;
-
-        if (existingCodes != null && !existingCodes.isEmpty()) {
-            for (String code : existingCodes) {
-                // 自身编号固定为最后两位
-                // 例如父级是 01，子级是 0105，截取后两位 "05" -> 转为数字 5
-                String suffix = code.substring(code.length() - 2);
-                try {
-                    int currentSeq = Integer.parseInt(suffix);
-                    if (currentSeq > maxSeq) {
-                        maxSeq = currentSeq;
-                    }
-                } catch (NumberFormatException e) {
-                    // 忽略格式错误的数据
-                }
-            }
-        }
-
-        // 3. 生成新的自身编号 (最大值 + 1)
-        int newSeq = maxSeq + 1;
-
-        // 4. 格式化：保持两位数，不足补零 (例如 1 -> "01", 12 -> "12")
-        String selfCode = String.format("%02d", newSeq);
-
-        // 5. 拼接返回
-        return prefix + selfCode;
     }
-
 	@Override
 	public void updateWmsProductCategories(WmsProductCategories wmsProductCategories) {
 		WmsProductCategories entity = this.getById(wmsProductCategories.getId());
@@ -118,7 +83,7 @@ public class WmsProductCategoriesServiceImpl extends ServiceImpl<WmsProductCateg
 		}
 		baseMapper.updateById(wmsProductCategories);
 	}
-	
+
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public void deleteWmsProductCategories(String id) throws JeecgBootException {
@@ -156,7 +121,7 @@ public class WmsProductCategoriesServiceImpl extends ServiceImpl<WmsProductCateg
             baseMapper.deleteById(id);
         }
 	}
-	
+
 	@Override
     public List<WmsProductCategories> queryTreeListNoPage(QueryWrapper<WmsProductCategories> queryWrapper) {
         List<WmsProductCategories> dataList = baseMapper.selectList(queryWrapper);

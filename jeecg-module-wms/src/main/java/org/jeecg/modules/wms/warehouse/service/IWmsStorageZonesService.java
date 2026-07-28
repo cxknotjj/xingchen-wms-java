@@ -5,18 +5,14 @@ import org.jeecg.modules.wms.warehouse.entity.WmsStorageZones;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
- * @Description: 储区表
+ * @Description: 库区表
  * @Author: jeecg-boot
- * @Date:   2025-09-03
+ * @Date:   2025-04-09
  * @Version: V1.0
  */
 public interface IWmsStorageZonesService extends IService<WmsStorageZones> {
     /**
-     * 分页查询库区列表
-     * @param wmsStorageZones
-     * @param pageNo
-     * @param pageSize
-     * @return
+     * 分页查询库区信息
      */
-    IPage<WmsStorageZones> queryList(WmsStorageZones wmsStorageZones, Integer pageNo, Integer pageSize);
+    public IPage<WmsStorageZones> queryList(WmsStorageZones wmsStorageZones, Integer pageNo, Integer pageSize);
 }

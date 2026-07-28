@@ -1,10 +1,9 @@
 package org.jeecg.modules.wms.inventory.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import dm.jdbc.util.StringUtil;
-import me.zhyd.oauth.utils.StringUtils;
-import org.jeecg.common.exception.JeecgBootException;
+import org.apache.commons.lang3.StringUtils;
 import org.jeecg.modules.wms.goods.entity.WmsProducts;
 import org.jeecg.modules.wms.goods.service.IWmsProductsService;
 import org.jeecg.modules.wms.inventory.entity.WmsInventory;
@@ -13,86 +12,102 @@ import org.jeecg.modules.wms.inventory.mapper.WmsInventoryTransMapper;
 import org.jeecg.modules.wms.inventory.service.IWmsInventoryService;
 import org.jeecg.modules.wms.inventory.service.IWmsInventoryTransService;
 import org.jeecg.modules.wms.inventory.vo.WmsInventoryTransParam;
+import org.jeecg.modules.wms.warehouse.entity.WmsStorageLocations;
+import org.jeecg.modules.wms.warehouse.service.IWmsStorageLocationsService;
+import org.jeecg.modules.wms.warehouse.service.IWmsStorageZonesService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
+
 /**
- * 收货操作库存表
+ * @Description: 收货时进行库存变更
+ * @Author: jeecg-boot
+ * @Date: 2025-08-30
+ * @Version: V1.0
  */
 @Service
 public class WmsInventoryTransByReceiving extends ServiceImpl<WmsInventoryTransMapper, WmsInventoryTrans> implements IWmsInventoryTransService {
-    @Autowired
-    private IWmsInventoryService wmsInventoryService;
+
     @Autowired
     private IWmsProductsService wmsProductsService;
 
-    @Override
+    @Autowired
+    private IWmsStorageLocationsService wmsStorageLocationsService;
+
+    @Autowired
+    private IWmsInventoryService wmsInventoryService;
+
+
     @Transactional(rollbackFor = Exception.class)
+    @Override
     public void transfer(WmsInventoryTransParam inventoryTransParam) {
-        // 关键字段非空判断 商品id，储位不能为空
-        if (StringUtils.isEmpty(inventoryTransParam.getProductId())
-                || StringUtils.isEmpty(inventoryTransParam.getTargetLocationCode())) {
-            throw new JeecgBootException("商品id，储位不能为空");
+        //非空判断，目标储位、商品id、执行数量,是否可售
+        if (StringUtils.isEmpty(inventoryTransParam.getTargetLocationCode())
+                || StringUtils.isEmpty(inventoryTransParam.getProductId())
+                ||  inventoryTransParam.getExecQuantity() == null
+                || StringUtils.isEmpty(inventoryTransParam.getIsSellable())) {
+            throw new RuntimeException("目标储位、商品id、执行数量、是否可售不能为空");
         }
-        String isSellable = inventoryTransParam.getIsSellable();
-        String productId = inventoryTransParam.getProductId();
-        // 查询商品信息
-        WmsProducts products = wmsProductsService.getById(productId);
-        // 如果商品不存在，抛出异常
+
+        //查询商品信息
+        WmsProducts products = wmsProductsService.getById(inventoryTransParam.getProductId());
         if (products == null) {
-            throw new JeecgBootException("商品不存在");
+            //抛出异常
+            throw new RuntimeException("商品id在商品表中不存在");
         }
-        // 先查询库存，如果查到库存，那么就在原有库存基础上新增
-        WmsInventory inventoryDb = wmsInventoryService.getInventoryByUniqueKey(inventoryTransParam.getProductId(), inventoryTransParam.getTargetLocationCode(), inventoryTransParam.getBatchNumber());
-        // 如果查询不到库存，要向库存表新增一条
-        if (inventoryDb == null) {
-            // 新增库存
-            inventoryDb = new WmsInventory();
-            // 货主id
-            inventoryDb.setOwnerId(products.getOwnerId());
-            // 商品id
-            inventoryDb.setProductId(inventoryTransParam.getProductId());
-            // 储位编码
-            inventoryDb.setLocationCode(inventoryTransParam.getTargetLocationCode());
-            // 库存数量
-            inventoryDb.setStockQuantity(inventoryTransParam.getExecQuantity());
-            // 分配数量
-            inventoryDb.setAllocatedQuantity(0);
-            // 可用数量
-            inventoryDb.setAvailableQuantity(isSellable.equals("1") ? inventoryTransParam.getExecQuantity() : 0);
-            // 批号
-            inventoryDb.setBatchNumber(inventoryTransParam.getBatchNumber());
-            // 入库时间
-            inventoryDb.setStockInTime(inventoryTransParam.getOperationTime());
-            // 保质期
-            inventoryDb.setExpiryDate(inventoryTransParam.getExpiryDate());
-            // 是否可售
-            inventoryDb.setIsSellable(isSellable);
-            // 仓库id
-            inventoryDb.setWarehouseId(inventoryTransParam.getWarehouseId());
-            wmsInventoryService.save(inventoryDb);
-        }else {
-            // 更新库存
-            LambdaUpdateWrapper<WmsInventory> update = new LambdaUpdateWrapper<>();
-            update.eq(WmsInventory::getId, inventoryDb.getId())
-                    .setSql("stock_quantity = stock_quantity + {0}", inventoryTransParam.getExecQuantity())
-                       .setSql(isSellable.equals("1"),"available_quantity = available_quantity + {0}", inventoryTransParam.getExecQuantity());
-            Boolean result = wmsInventoryService.update(null,update);
-            if (!result) {
-                throw new JeecgBootException("库存更新失败");
-            }
+        //根据储位编码查询储位 信息
+        LambdaQueryWrapper<WmsStorageLocations> eq = new LambdaQueryWrapper<WmsStorageLocations>().eq(WmsStorageLocations::getLocationCode, inventoryTransParam.getTargetLocationCode());
+        WmsStorageLocations wmsStorageLocations = wmsStorageLocationsService.getBaseMapper().selectOne(eq);
+        if (wmsStorageLocations == null) {
+            //抛出异常
+            throw new RuntimeException("储位编码在储位表中不存在");
         }
-        // 向库存变更表插入一条记录
-        WmsInventoryTrans InventoryTrans = new WmsInventoryTrans();
-        InventoryTrans.setProductId(inventoryTransParam.getProductId()); // 商品id
-        InventoryTrans.setLocationCode(inventoryTransParam.getTargetLocationCode()); // 目标储位编码
-        InventoryTrans.setChangeQuantity(inventoryTransParam.getExecQuantity()); // 变更数量
-        InventoryTrans.setTransactionType(inventoryTransParam.getTransactionType()); // 库存变更类型
-        InventoryTrans.setRemarks(inventoryTransParam.getRemarks());
-        InventoryTrans.setTransactionTime(inventoryTransParam.getOperationTime()); // 变更时间
-        // 批号
-        InventoryTrans.setBatchNumber(inventoryTransParam.getBatchNumber());
-        save(InventoryTrans);
+        //是否可售库存
+        String isSellable = wmsStorageLocations.getIsSellable();
+        //是否可售库存
+        if(!inventoryTransParam.getIsSellable().equals(isSellable)){
+            throw new RuntimeException("良品放在可售储位，不良品放在不可售储位");
+        }
+        //根据唯一key获取库存
+        WmsInventory wmsInventoryDb = wmsInventoryService.getInventoryByUniqueKey(inventoryTransParam.getProductId(), inventoryTransParam.getTargetLocationCode(), inventoryTransParam.getBatchNumber());
+        //判断库存是否为空
+        if (wmsInventoryDb == null) {
+
+            //创建库存对象
+            wmsInventoryDb = new WmsInventory();
+            wmsInventoryDb.setOwnerId(products.getOwnerId());
+            BeanUtils.copyProperties(inventoryTransParam,wmsInventoryDb);
+            wmsInventoryDb.setStockQuantity(inventoryTransParam.getExecQuantity());
+            wmsInventoryDb.setLocationCode(inventoryTransParam.getTargetLocationCode());
+            //如果储位是可售库存，则设置可用库存为数量
+            wmsInventoryDb.setAvailableQuantity(isSellable.equals("1")?inventoryTransParam.getExecQuantity():0);
+            wmsInventoryDb.setAllocatedQuantity(0);
+            //是否可售
+            wmsInventoryDb.setIsSellable(isSellable);
+            //入库时间
+            wmsInventoryDb.setStockInTime(inventoryTransParam.getOperationTime());
+            wmsInventoryService.save(wmsInventoryDb);
+        }else{
+            LambdaUpdateWrapper<WmsInventory> wmsInventoryLambdaUpdateWrapper = new LambdaUpdateWrapper<WmsInventory>()
+                    .eq(WmsInventory::getId, wmsInventoryDb.getId())
+                    .setSql("stock_quantity=stock_quantity+{0}", inventoryTransParam.getExecQuantity())
+                    .setSql("available_quantity=available_quantity+{0}", inventoryTransParam.getExecQuantity());
+            wmsInventoryService.update(null,wmsInventoryLambdaUpdateWrapper);
+
+        }
+        //插入库存变更表
+        WmsInventoryTrans wmsInventoryTrans = new WmsInventoryTrans();
+        wmsInventoryTrans.setProductId(inventoryTransParam.getProductId());
+        wmsInventoryTrans.setLocationCode(inventoryTransParam.getTargetLocationCode());
+        wmsInventoryTrans.setBatchNumber(inventoryTransParam.getBatchNumber());
+        wmsInventoryTrans.setChangeQuantity(inventoryTransParam.getExecQuantity());
+        wmsInventoryTrans.setTransactionType(inventoryTransParam.getTransactionType());
+        wmsInventoryTrans.setRemarks(inventoryTransParam.getRemarks());
+        wmsInventoryTrans.setTransactionTime(new Date());
+        save(wmsInventoryTrans);
+
     }
 }

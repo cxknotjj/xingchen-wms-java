@@ -73,7 +73,7 @@ public class ImportInventoryListener implements ReadListener<WmsInventoryImport>
     private void saveData() {
         log.info("{}条数据，开始存储数据库！", cachedDataList.size());
 
-        wmsInventoryService.importInventory(cachedDataList);
+//        wmsInventoryService.importInventory(cachedDataList);
         log.info("存储数据库成功！");
     }
 }

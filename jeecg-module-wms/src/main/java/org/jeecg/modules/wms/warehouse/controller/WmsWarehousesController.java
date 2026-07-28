@@ -10,7 +10,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.system.query.QueryGenerator;
 import org.jeecg.common.system.query.QueryRuleEnum;
 import org.jeecg.common.util.oConvertUtils;
@@ -34,15 +37,15 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
 import com.alibaba.fastjson.JSON;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 
  /**
  * @Description: 仓库表
  * @Author: jeecg-boot
- * @Date:   2025-09-02
+ * @Date:   2025-04-10
  * @Version: V1.0
  */
 @Tag(name="仓库表")
@@ -65,6 +68,7 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	//@AutoLog(value = "仓库表-分页列表查询")
 	@Operation(summary="仓库表-分页列表查询")
 	@GetMapping(value = "/list")
+//	@RequiresPermissions("warehouse:wms_warehouses:list")
 	public Result<IPage<WmsWarehouses>> queryPageList(WmsWarehouses wmsWarehouses,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
@@ -87,7 +91,6 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsWarehouses wmsWarehouses) {
 		wmsWarehousesService.add(wmsWarehouses);
-//		wmsWarehousesService.save(wmsWarehouses);
 		return Result.OK("添加成功！");
 	}
 
@@ -103,7 +106,7 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody WmsWarehouses wmsWarehouses) {
 		wmsWarehousesService.edit(wmsWarehouses);
-//		wmsWarehousesService.updateById(wmsWarehouses);
+
 		return Result.OK("编辑成功!");
 	}
 
@@ -118,22 +121,9 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	@RequiresPermissions("warehouse:wms_warehouses:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
-		wmsWarehousesService.removeById(id);
+		wmsWarehousesService.delete(id);
+
 		return Result.OK("删除成功!");
-	}
-	@AutoLog(value = "仓库表-启用")
-	@Operation(summary="仓库表-启用")
-	@RequestMapping(value = "/enable",method = {RequestMethod.PUT,RequestMethod.POST})
-	public Result<String> enable(@RequestParam(name="id",required=true) String id) {
-		wmsWarehousesService.enable(id);
-		return Result.OK("启用成功!");
-	}
-	@AutoLog(value = "仓库表-禁用")
-	@Operation(summary="仓库表-禁用")
-	@RequestMapping(value = "/disable",method = {RequestMethod.PUT,RequestMethod.POST})
-	public Result<String> disable(@RequestParam(name="id",required=true) String id) {
-		wmsWarehousesService.disable(id);
-		return Result.OK("禁用成功!");
 	}
 
 	/**
@@ -192,5 +182,32 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, WmsWarehouses.class);
     }
+
+	 /**
+	  * 启用
+	  */
+	 @AutoLog(value = "仓库-启用")
+	 @Operation(summary="仓库-启用")
+	 @RequestMapping(value = "/enable", method = {RequestMethod.PUT,RequestMethod.POST})
+	 public Result<?> enable(@RequestBody WmsWarehouses wmsWarehouses) {
+		 if(wmsWarehouses == null|| StringUtils.isEmpty(wmsWarehouses.getId() )){
+			 return Result.error("参数错误");
+		 }
+		 wmsWarehousesService.enable(wmsWarehouses.getId());
+		 return Result.OK("启用成功！");
+	 }
+	 /**
+	  * 禁用
+	  */
+	 @AutoLog(value = "仓库-禁用")
+	 @Operation(summary="仓库-禁用")
+	 @RequestMapping(value = "/disable", method = {RequestMethod.PUT,RequestMethod.POST})
+	 public Result<?> disable(@RequestBody WmsWarehouses wmsWarehouses) {
+		 if(wmsWarehouses == null|| StringUtils.isEmpty(wmsWarehouses.getId() )){
+			 return Result.error("参数错误");
+		 }
+		 wmsWarehousesService.disable(wmsWarehouses.getId());
+		 return Result.OK("禁用成功！");
+	 }
 
 }
