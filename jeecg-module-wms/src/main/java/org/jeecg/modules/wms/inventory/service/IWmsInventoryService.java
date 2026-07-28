@@ -3,6 +3,9 @@ package org.jeecg.modules.wms.inventory.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.jeecg.modules.wms.inventory.entity.WmsInventory;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.jeecg.modules.wms.inventory.excel.WmsInventoryImport;
+
+import java.util.List;
 
 /**
  * @Description: 库存表
@@ -28,4 +31,9 @@ public interface IWmsInventoryService extends IService<WmsInventory> {
      * @return
      */
     IPage<WmsInventory> queryInventoryList(WmsInventory wmsInventory, Integer pageNo, Integer pageSize);
+    /**
+     * 导入库存
+     * @param
+     */
+    void importInventory(List<WmsInventoryImport> importInventoryList);
 }

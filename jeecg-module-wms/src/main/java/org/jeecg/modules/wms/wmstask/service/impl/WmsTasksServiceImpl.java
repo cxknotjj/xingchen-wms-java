@@ -176,7 +176,7 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
         // 更新入库单明细中的收货数量及不良品数量，当不良品数量加良品数量等于采购数量，更新状态为收货完成。
         wmsStockInOrderItemsService.updateReceivedStatus(tasks.getStockInOrderItemId());
         // 更新入库单中收货数量，如果所有明细的状态为收货完成，那么入库单的状态为完成。
-        wmsStockInOrdersService.updateReceivedStatus(tasks.getStockInOrderId());
+        String status = wmsStockInOrdersService.updateReceivedStatus(tasks.getStockInOrderId());
         // 增加库存
         WmsInventoryTransParam inventoryTransParam = new WmsInventoryTransParam();
         inventoryTransParam.setProductId(tasks.getProductId()); // 商品id
@@ -199,15 +199,13 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
         wmsInventoryTransByReceiving.transfer(inventoryTransParam);
 
         // 如果该入库单收货完成，那么创建上架任务
-        String orderId = tasks.getStockInOrderId();
-        WmsStockInOrders stockInOrder = wmsStockInOrdersService.getById(orderId);
-        if (stockInOrder != null && WarehouseDictEnum.INBOUND_RECEIVED.getCode().equals(stockInOrder.getStatus())) {
+        if (WarehouseDictEnum.INBOUND_RECEIVED.getCode().equals(status)) {
             // 优先使用任务中的操作人，为空则使用记录中的操作人
             String operator = tasks.getOperator();
             if (operator == null || operator.isEmpty()) {
                 operator = wmsTasksRecords.getOperator();
             }
-            createShelfTask(orderId, operator);
+            createShelfTask(wmsTasksRecords.getStockInOrderId(), operator);
         }
     }
 

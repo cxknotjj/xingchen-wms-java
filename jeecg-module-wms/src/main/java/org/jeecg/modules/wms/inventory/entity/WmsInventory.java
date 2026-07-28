@@ -11,7 +11,8 @@ import org.jeecg.common.util.SpringContextUtils;
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.jeecgframework.poi.excel.annotation.Excel;
+import com.alibaba.excel.annotation.ExcelProperty;
+import com.alibaba.excel.annotation.ExcelIgnore;
 import org.jeecg.common.aspect.annotation.Dict;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
@@ -34,124 +35,130 @@ public class WmsInventory implements Serializable {
 	/**主键*/
 	@TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键")
+    @ExcelIgnore
     private java.lang.String id;
 	/**创建人*/
     @Schema(description = "创建人")
+    @ExcelIgnore
     private java.lang.String createBy;
 	/**创建日期*/
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "创建日期")
+    @ExcelIgnore
     private java.util.Date createTime;
 	/**更新人*/
     @Schema(description = "更新人")
+    @ExcelIgnore
     private java.lang.String updateBy;
 	/**更新日期*/
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "更新日期")
+    @ExcelIgnore
     private java.util.Date updateTime;
 	/**所属部门*/
     @Schema(description = "所属部门")
+    @ExcelIgnore
     private java.lang.String sysOrgCode;
 	/**商品id*/
-	@Excel(name = "商品id", width = 15)
     @Schema(description = "商品id")
+    @ExcelIgnore
     private java.lang.String productId;
 	/**储位编码*/
-	@Excel(name = "储位编码", width = 15)
+	@ExcelProperty("储位编码")
     @Schema(description = "储位编码")
     private java.lang.String locationCode;
 	/**容器编码*/
-	@Excel(name = "容器编码", width = 15)
     @Schema(description = "容器编码")
+    @ExcelIgnore
     private java.lang.String containerCode;
 	/**在库数量*/
-	@Excel(name = "在库数量", width = 15)
+	@ExcelProperty("在库数量")
     @Schema(description = "在库数量")
     private java.lang.Integer stockQuantity;
 	/**分配数量*/
-	@Excel(name = "分配数量", width = 15)
+	@ExcelProperty("分配数量")
     @Schema(description = "分配数量")
     private java.lang.Integer allocatedQuantity;
 	/**可用数量*/
-	@Excel(name = "可用数量", width = 15)
+	@ExcelProperty("可用数量")
     @Schema(description = "可用数量")
     private java.lang.Integer availableQuantity;
 	/**批号 */
-	@Excel(name = "批号 ", width = 15)
+	@ExcelProperty("批号")
     @Schema(description = "批号 ")
     private java.lang.String batchNumber;
 	/**入库时间*/
-	@Excel(name = "入库时间", width = 20, format = "yyyy-MM-dd HH:mm:ss")
+	@ExcelProperty("入库时间")
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "入库时间")
     private java.util.Date stockInTime;
 	/**保质期到期日*/
-	@Excel(name = "保质期到期日", width = 15, format = "yyyy-MM-dd")
+	@ExcelProperty("保质期到期日")
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd")
     @DateTimeFormat(pattern="yyyy-MM-dd")
     @Schema(description = "保质期到期日")
     private java.util.Date expiryDate;
 	/**货主*/
-	@Excel(name = "货主", width = 15)
+	@ExcelProperty("货主")
     @Schema(description = "货主")
     private java.lang.String ownerId;
 	/**是否可售*/
-	@Excel(name = "是否可售", width = 15)
     @Schema(description = "是否可售")
+    @ExcelIgnore
     private java.lang.String isSellable;
 	/**仓库id*/
-	@Excel(name = "仓库id", width = 15)
     @Schema(description = "仓库id")
+    @ExcelIgnore
     private java.lang.String warehouseId;
 
 	/**商品编码*/
-	@Excel(name = "商品编码", width = 15)
+	@ExcelProperty("商品编码")
     @Schema(description = "商品编码")
     @TableField(exist = false)
     private java.lang.String productCode;
 
 	/**商品名称*/
-	@Excel(name = "商品名称", width = 15)
+	@ExcelProperty("商品")
     @Schema(description = "商品名称")
     @TableField(exist = false)
     private java.lang.String productName;
 
 	/**货主编码*/
-	@Excel(name = "货主编码", width = 15)
+	@ExcelProperty("货主编码")
     @Schema(description = "货主编码")
     @TableField(exist = false)
     private java.lang.String ownerCode;
 
     /**货主名称*/
-	@Excel(name = "货主名称", width = 15)
+	@ExcelProperty("货主")
     @Schema(description = "货主名称")
     @TableField(exist = false)
     private java.lang.String ownerName;
 
 	/**仓库名称*/
-	@Excel(name = "仓库名称", width = 15)
+	@ExcelProperty("仓库名称")
     @Schema(description = "仓库名称")
     @TableField(exist = false)
     private java.lang.String warehouseName;
 
 	/**储位类型*/
-	@Excel(name = "储位类型", width = 15)
     @Schema(description = "储位类型")
     @TableField(exist = false)
+    @ExcelIgnore
     private java.lang.String locationType;
 
 	/**储区类型*/
-	@Excel(name = "储区类型", width = 15)
     @Schema(description = "储区类型")
     @TableField(exist = false)
+    @ExcelIgnore
     private java.lang.String zoneType;
 
 	/**储区名称*/
-	@Excel(name = "储区名称", width = 15)
     @Schema(description = "储区名称")
     @TableField(exist = false)
+    @ExcelIgnore
     private java.lang.String zoneName;
 }
