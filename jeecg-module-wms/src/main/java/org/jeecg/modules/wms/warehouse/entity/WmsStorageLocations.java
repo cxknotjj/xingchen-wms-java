@@ -4,10 +4,8 @@ import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.math.BigDecimal;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+
+import com.baomidou.mybatisplus.annotation.*;
 import org.jeecg.common.constant.ProvinceCityArea;
 import org.jeecg.common.util.SpringContextUtils;
 import lombok.Data;
@@ -20,16 +18,16 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * @Description: 储位表
+ * @Description: 库位表
  * @Author: jeecg-boot
- * @Date:   2025-09-03
+ * @Date:   2025-04-10
  * @Version: V1.0
  */
 @Data
 @TableName("wms_storage_locations")
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@Schema(description="储位表")
+@Schema(description="库位表")
 public class WmsStorageLocations implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -60,19 +58,19 @@ public class WmsStorageLocations implements Serializable {
 	@Excel(name = "库位编码", width = 15)
     @Schema(description = "库位编码")
     private String locationCode;
-	/**储位类别*/
-	@Excel(name = "储位类别", width = 15)
-    @Schema(description = "储位类别")
+	/**库位类别*/
+	@Excel(name = "库位类别", width = 15)
+    @Schema(description = "库位类别")
     private String locationCategory;
 	/**库位类型*/
 	@Excel(name = "库位类型", width = 15, dicCode = "location_type")
 	@Dict(dicCode = "location_type")
     @Schema(description = "库位类型")
     private String locationType;
-	/**状态*/
-	@Excel(name = "状态", width = 15, dicCode = "dict_item_status")
-	@Dict(dicCode = "dict_item_status")
-    @Schema(description = "状态")
+	/**状态:创建,启用,禁用*/
+	@Excel(name = "状态:创建,启用,禁用", width = 15, dicCode = "dict_item_status")
+	@Dict(dicCode = "wms_status")
+    @Schema(description = "状态:创建,启用,禁用")
     private String status;
 	/**所属仓库*/
 	@Excel(name = "所属仓库", width = 15)
@@ -110,7 +108,7 @@ public class WmsStorageLocations implements Serializable {
 	@Excel(name = "容积", width = 15)
     @Schema(description = "容积")
     private Double locationCapacity;
-	/**承重*/
+	/**称重*/
 	@Excel(name = "承重", width = 15)
     @Schema(description = "承重")
     private Double loadCapacity;
@@ -119,4 +117,12 @@ public class WmsStorageLocations implements Serializable {
 	@Dict(dicCode = "yn")
     @Schema(description = "是否可售")
     private String isSellable;
+
+    //仓库对象用于显示
+    @TableField(exist = false)
+    private WmsWarehouses warehouse;
+
+    //库区对象用于显示
+    @TableField(exist = false)
+    private WmsStorageZones storageZones;
 }

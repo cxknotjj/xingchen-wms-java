@@ -34,15 +34,15 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
 import com.alibaba.fastjson.JSON;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 
  /**
  * @Description: 货主表
  * @Author: jeecg-boot
- * @Date:   2025-09-02
+ * @Date:   2025-04-13
  * @Version: V1.0
  */
 @Tag(name="货主表")
@@ -87,7 +87,6 @@ public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IW
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsCargoOwners wmsCargoOwners) {
 		wmsCargoOwnersService.add(wmsCargoOwners);
-//		wmsCargoOwnersService.save(wmsCargoOwners);
 		return Result.OK("添加成功！");
 	}
 
@@ -102,7 +101,7 @@ public class WmsCargoOwnersController extends JeecgController<WmsCargoOwners, IW
 	@RequiresPermissions("goods:wms_cargo_owners:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody WmsCargoOwners wmsCargoOwners) {
-		wmsCargoOwnersService.updateById(wmsCargoOwners);
+		wmsCargoOwnersService.edit(wmsCargoOwners);
 		return Result.OK("编辑成功!");
 	}
 

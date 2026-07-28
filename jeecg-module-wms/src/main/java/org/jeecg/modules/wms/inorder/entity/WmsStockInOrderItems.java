@@ -16,7 +16,7 @@ import java.io.UnsupportedEncodingException;
 /**
  * @Description: 入库单明细
  * @Author: jeecg-boot
- * @Date:   2026-07-24
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 @Schema(description="入库单明细")
@@ -28,63 +28,69 @@ public class WmsStockInOrderItems implements Serializable {
 	/**主键*/
 	@TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "主键")
-    private java.lang.String id;
+    private String id;
 	/**创建人*/
     @Schema(description = "创建人")
-    private java.lang.String createBy;
+    private String createBy;
 	/**创建日期*/
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "创建日期")
-    private java.util.Date createTime;
+    private Date createTime;
 	/**更新人*/
     @Schema(description = "更新人")
-    private java.lang.String updateBy;
+    private String updateBy;
 	/**更新日期*/
 	@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
     @Schema(description = "更新日期")
-    private java.util.Date updateTime;
+    private Date updateTime;
 	/**所属部门*/
     @Schema(description = "所属部门")
-    private java.lang.String sysOrgCode;
+    private String sysOrgCode;
 	/**入库单id*/
     @Schema(description = "入库单id")
-    private java.lang.String orderId;
+    private String orderId;
 	/**商品id*/
 	@Excel(name = "商品id", width = 15)
     @Schema(description = "商品id")
-    private java.lang.String productId;
+    private String productId;
 	/**采购数量*/
 	@Excel(name = "采购数量", width = 15)
     @Schema(description = "采购数量")
-    private java.lang.Integer expectedQuantity;
+    private Integer expectedQuantity;
 	/**实际收货数量*/
 	@Excel(name = "实际收货数量", width = 15)
     @Schema(description = "实际收货数量")
-    private java.lang.Integer receivedQuantity;
+    private Integer receivedQuantity;
 	/**上架数量*/
 	@Excel(name = "上架数量", width = 15)
     @Schema(description = "上架数量")
-    private java.lang.Integer shelvedQuantity;
+    private Integer shelvedQuantity;
 	/**不良品数量*/
 	@Excel(name = "不良品数量", width = 15)
     @Schema(description = "不良品数量")
-    private java.lang.Integer defectiveQuantity;
+    private Integer defectiveQuantity;
 	/**备注*/
 	@Excel(name = "备注", width = 15)
     @Schema(description = "备注")
-    private java.lang.String remarks;
+    private String remarks;
 	/**状态*/
 	@Excel(name = "状态", width = 15)
     @Schema(description = "状态")
-    private java.lang.String status;
+    private String status;
 
-    @Schema(description = "商品名称")
+    //商品名称
     @TableField(exist = false)
     private String productName;
-
-    @Schema(description = "商品编码")
+    //商品编码
     @TableField(exist = false)
     private String productCode;
+    //入库单号
+    @TableField(exist = false)
+    private String orderNumber;
+
+    //序号
+    @TableField(exist = false)
+    private java.lang.Integer serialNumber;
 }

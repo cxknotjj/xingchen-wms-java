@@ -1,53 +1,33 @@
 package org.jeecg.modules.wms.warehouse.controller;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jeecg.common.api.vo.Result;
-import org.jeecg.common.system.query.QueryGenerator;
-import org.jeecg.common.system.query.QueryRuleEnum;
-import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.wms.warehouse.entity.WmsStorageZones;
-import org.jeecg.modules.wms.warehouse.entity.WmsWarehouses;
 import org.jeecg.modules.wms.warehouse.service.IWmsStorageZonesService;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jeecg.modules.wms.warehouse.service.IWmsWarehousesService;
-import org.jeecgframework.poi.excel.ExcelImportUtil;
-import org.jeecgframework.poi.excel.def.NormalExcelConstants;
-import org.jeecgframework.poi.excel.entity.ExportParams;
-import org.jeecgframework.poi.excel.entity.ImportParams;
-import org.jeecgframework.poi.excel.view.JeecgEntityExcelView;
 import org.jeecg.common.system.base.controller.JeecgController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
-import com.alibaba.fastjson.JSON;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 
  /**
- * @Description: 储区表
+ * @Description: 库区表
  * @Author: jeecg-boot
- * @Date:   2025-09-03
+ * @Date:   2025-04-09
  * @Version: V1.0
  */
-@Tag(name="储区表")
+@Tag(name="库区表")
 @RestController
 @RequestMapping("/warehouse/wmsStorageZones")
 @Slf4j
@@ -55,8 +35,9 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	@Autowired
 	private IWmsStorageZonesService wmsStorageZonesService;
 
-	@Autowired
-	private IWmsWarehousesService wmsWarehousesService;
+	//注入仓库service
+	 @Autowired
+	 private IWmsWarehousesService wmsWarehousesService;
 
 	/**
 	 * 分页列表查询
@@ -67,18 +48,17 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	 * @param req
 	 * @return
 	 */
-	@AutoLog(value = "储区表-分页列表查询")
-	@Operation(summary="储区表-分页列表查询",operationId = "wmsStorageZones-queryList")
+	//@AutoLog(value = "库区表-分页列表查询")
+	@Operation(summary="库区表-分页列表查询")
 	@GetMapping(value = "/list")
 	public Result<IPage<WmsStorageZones>> queryPageList(WmsStorageZones wmsStorageZones,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
 								   HttpServletRequest req) {
-		IPage<WmsStorageZones> page =  wmsStorageZonesService.queryList(wmsStorageZones,pageNo,pageSize);
-		return Result.OK(page);
+		IPage<WmsStorageZones> wmsStorageZonesIPage = wmsStorageZonesService.queryList(wmsStorageZones, pageNo, pageSize);
+		return Result.OK(wmsStorageZonesIPage);
 	}
-//	@AutoLog(value = "储区表-分页列表查询")
-//	@Operation(summary="储区表-分页列表查询")
+//	@Operation(summary="库区表-分页列表查询")
 //	@GetMapping(value = "/list")
 //	public Result<IPage<WmsStorageZones>> queryPageList(WmsStorageZones wmsStorageZones,
 //								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
@@ -87,43 +67,22 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 //        QueryWrapper<WmsStorageZones> queryWrapper = QueryGenerator.initQueryWrapper(wmsStorageZones, req.getParameterMap());
 //		Page<WmsStorageZones> page = new Page<WmsStorageZones>(pageNo, pageSize);
 //		IPage<WmsStorageZones> pageList = wmsStorageZonesService.page(page, queryWrapper);
-//		List<WmsStorageZones> records = pageList.getRecords();
-//		//如果pageList为空直接返回
-//		if(records.size()<=0){
+//		if(pageList.getRecords().size()<=0){
 //			return Result.OK(pageList);
 //		}
+//		// 查询仓库id
+//		List<String> warehousIds = pageList.getRecords().stream().map(item -> item.getWarehouseId()).collect(Collectors.toList());
 //
-//
-//		//从pageList提取出仓库id
-//		List<String> warehouseIds = pageList.getRecords().stream().map(item->{
-//			return item.getWarehouseId();
-//		}).collect(Collectors.toList());
-//
-//		//根据仓库id查询仓库名称
-//		List<WmsWarehouses> wmsWarehouses = wmsWarehousesService.listByIds(warehouseIds);
-//
-//		//遍历pageList，向warehouseName赋值
-//		pageList.getRecords().forEach(item->{
-//			String warehouseId = item.getWarehouseId();
-//			//根据item中的仓库id从wmsWarehouses找一个对象
-//			WmsWarehouses wmsWarehouses1 = wmsWarehouses.stream().filter(warehouse -> warehouse.getId().equals(warehouseId)).findFirst().orElse(new WmsWarehouses());
-//
-//			//找到对应的仓库对象后，将仓库名称设置到item中
-//			item.setWarehouseName(wmsWarehouses1.getWarehouseName());
-//
+//		//获取mapper
+//		BaseMapper<WmsWarehouses> baseMapper = wmsWarehousesService.getBaseMapper();
+//		// 查询仓库信息
+//		List<WmsWarehouses> wmsWarehouses = baseMapper.selectBatchIds(warehousIds);
+//		// 设置仓库信息
+//		pageList.getRecords().stream().forEach(item -> {
+//			WmsWarehouses wmsWarehousesTemp = wmsWarehouses.stream().filter(warehouse -> warehouse.getId().equals(item.getWarehouseId())).findFirst().orElse(new WmsWarehouses());
+//			item.setWarehouseName(wmsWarehousesTemp.getWarehouseName());
 //		});
 //
-//		return Result.OK(pageList);
-//	}
-//	@Operation(summary="储区表-分页列表查询")
-//	@GetMapping(value = "/list")
-//	public Result<IPage<WmsStorageZones>> queryPageList(WmsStorageZones wmsStorageZones,
-//								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
-//								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
-//								   HttpServletRequest req) {
-//        QueryWrapper<WmsStorageZones> queryWrapper = QueryGenerator.initQueryWrapper(wmsStorageZones, req.getParameterMap());
-//		Page<WmsStorageZones> page = new Page<WmsStorageZones>(pageNo, pageSize);
-//		IPage<WmsStorageZones> pageList = wmsStorageZonesService.page(page, queryWrapper);
 //		return Result.OK(pageList);
 //	}
 
@@ -133,8 +92,8 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	 * @param wmsStorageZones
 	 * @return
 	 */
-	@AutoLog(value = "储区表-添加")
-	@Operation(summary="储区表-添加")
+	@AutoLog(value = "库区表-添加")
+	@Operation(summary="库区表-添加")
 	@RequiresPermissions("warehouse:wms_storage_zones:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsStorageZones wmsStorageZones) {
@@ -148,8 +107,8 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	 * @param wmsStorageZones
 	 * @return
 	 */
-	@AutoLog(value = "储区表-编辑")
-	@Operation(summary="储区表-编辑")
+	@AutoLog(value = "库区表-编辑")
+	@Operation(summary="库区表-编辑")
 	@RequiresPermissions("warehouse:wms_storage_zones:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody WmsStorageZones wmsStorageZones) {
@@ -163,8 +122,8 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	 * @param id
 	 * @return
 	 */
-	@AutoLog(value = "储区表-通过id删除")
-	@Operation(summary="储区表-通过id删除")
+	@AutoLog(value = "库区表-通过id删除")
+	@Operation(summary="库区表-通过id删除")
 	@RequiresPermissions("warehouse:wms_storage_zones:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
@@ -178,8 +137,8 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	 * @param ids
 	 * @return
 	 */
-	@AutoLog(value = "储区表-批量删除")
-	@Operation(summary="储区表-批量删除")
+	@AutoLog(value = "库区表-批量删除")
+	@Operation(summary="库区表-批量删除")
 	@RequiresPermissions("warehouse:wms_storage_zones:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
@@ -193,8 +152,8 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
 	 * @param id
 	 * @return
 	 */
-	//@AutoLog(value = "储区表-通过id查询")
-	@Operation(summary="储区表-通过id查询")
+	//@AutoLog(value = "库区表-通过id查询")
+	@Operation(summary="库区表-通过id查询")
 	@GetMapping(value = "/queryById")
 	public Result<WmsStorageZones> queryById(@RequestParam(name="id",required=true) String id) {
 		WmsStorageZones wmsStorageZones = wmsStorageZonesService.getById(id);
@@ -213,7 +172,7 @@ public class WmsStorageZonesController extends JeecgController<WmsStorageZones, 
     @RequiresPermissions("warehouse:wms_storage_zones:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, WmsStorageZones wmsStorageZones) {
-        return super.exportXls(request, wmsStorageZones, WmsStorageZones.class, "储区表");
+        return super.exportXls(request, wmsStorageZones, WmsStorageZones.class, "库区表");
     }
 
     /**

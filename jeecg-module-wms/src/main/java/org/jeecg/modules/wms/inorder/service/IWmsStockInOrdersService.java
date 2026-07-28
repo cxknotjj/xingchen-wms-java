@@ -12,10 +12,15 @@ import java.util.List;
 /**
  * @Description: 入库单主表
  * @Author: jeecg-boot
- * @Date:   2025-09-03
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 public interface IWmsStockInOrdersService extends IService<WmsStockInOrders> {
+
+	/**
+	 * 添加入库单
+	 */
+	public void add(WmsStockInOrders wmsStockInOrders);
 
 	/**
 	 * 添加一对多
@@ -24,7 +29,17 @@ public interface IWmsStockInOrdersService extends IService<WmsStockInOrders> {
 	 * @param wmsStockInOrderItemsList
 	 */
 	public void saveMain(WmsStockInOrders wmsStockInOrders,List<WmsStockInOrderItems> wmsStockInOrderItemsList) ;
+	/**
+	 * 审核入库单
+	 * @param wmsStockInOrdersPage
+	 */
+	void audit(WmsStockInOrdersPage wmsStockInOrdersPage);
 
+	/**
+	 * 提交审核
+	 * @param wmsStockInOrdersPage
+	 */
+	void submitAudit(WmsStockInOrdersPage wmsStockInOrdersPage);
 	/**
 	 * 修改一对多
 	 *
@@ -48,24 +63,6 @@ public interface IWmsStockInOrdersService extends IService<WmsStockInOrders> {
 	public void delBatchMain (Collection<? extends Serializable> idList);
 
 	/**
-	 * 新增入库单
-	 * @param wmsStockInOrders
-	 */
-    void add(WmsStockInOrders wmsStockInOrders);
-
-	/**
-	 * 审核入库单
-	 * @param wmsStockInOrdersPage
-	 */
-	void audit(WmsStockInOrdersPage wmsStockInOrdersPage);
-
-	/**
-	 * 提交审核
-	 * @param wmsStockInOrdersPage
-	 */
-	void submitAudit(WmsStockInOrdersPage wmsStockInOrdersPage);
-
-	/**
 	 * 更新收货完成状态
 	 * @param stockInOrderId 入库单id
 	 * @return 更新后的入库单状态
@@ -73,10 +70,10 @@ public interface IWmsStockInOrdersService extends IService<WmsStockInOrders> {
 	String updateReceivedStatus(String stockInOrderId);
 
 	/**
-	 * 更新上架完成状态
-	 * @param stockInOrderId 入库单id
+	 *  更新上架完成状态
+	 *  @param stockInOrderId 入库单id
 	 * @return 更新后的入库单状态
 	 */
-	String updateShelvedStatus(String stockInOrderId);
+	String updatePutawayStatus(String stockInOrderId);
 
 }

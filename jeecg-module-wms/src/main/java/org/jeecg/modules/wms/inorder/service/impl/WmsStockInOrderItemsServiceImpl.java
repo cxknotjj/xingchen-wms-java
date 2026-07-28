@@ -11,17 +11,16 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @Description: 入库单明细
  * @Author: jeecg-boot
- * @Date:   2026-07-24
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 @Service
 public class WmsStockInOrderItemsServiceImpl extends ServiceImpl<WmsStockInOrderItemsMapper, WmsStockInOrderItems> implements IWmsStockInOrderItemsService {
-	
+
 	@Autowired
 	private WmsStockInOrderItemsMapper wmsStockInOrderItemsMapper;
 
@@ -34,81 +33,60 @@ public class WmsStockInOrderItemsServiceImpl extends ServiceImpl<WmsStockInOrder
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
 	public void updateReceivedStatus(String stockInOrderItemId) {
-		// 更新入库单明细中的收货数量及不良品数量，当不良品数量加良品数量等于采购数量，更新状态为收货完成。
-		// 查询入库单明细
-		WmsStockInOrderItems stockInOrderItems = wmsStockInOrderItemsMapper.selectById(stockInOrderItemId);
+		//查询入库单明细
+		WmsStockInOrderItems stockInOrderItemUpdate = getById(stockInOrderItemId);
+		//根据入库单明细id查询收货记录
+		LambdaQueryWrapper<WmsTasksRecords> eq = new LambdaQueryWrapper<WmsTasksRecords>()
+				.eq(WmsTasksRecords::getStockInOrderItemId, stockInOrderItemId);
+		List<WmsTasksRecords> wmsTasksRecords = wmsTasksRecordsService.list(eq);
 
-		// 根据入库单明细id找到关联的收货记录，拿到其中的收货数量和不良品数量
-		LambdaQueryWrapper<WmsTasksRecords> queryWrapper = new LambdaQueryWrapper<>();
-		queryWrapper.eq(WmsTasksRecords::getStockInOrderItemId, stockInOrderItemId);
-		List<WmsTasksRecords> recordsList = wmsTasksRecordsService.list(queryWrapper);
-
-		// 良品数量
-		int goodProductSum = recordsList.stream()
-				.filter(taskRecords -> taskRecords.getInventoryAttribute().equals(WarehouseDictEnum.RECEIVING_GOOD.getCode()))
+		//根据stream流汇总wmsTasksRecords中的不良品数量
+		int badQuantity  = wmsTasksRecords.stream()
+				.filter(wmsTasksRecords1 -> WarehouseDictEnum.INVENTORY_ATTRIBUTE_DEFECTIVE.getCode().equals(wmsTasksRecords1.getInventoryAttribute()))
 				.mapToInt(WmsTasksRecords::getExecQuantity)
 				.sum();
-		// 不良品数量
-		int defectProductSum = recordsList.stream()
-				.filter(taskRecords -> taskRecords.getInventoryAttribute().equals(WarehouseDictEnum.RECEIVING_DEFECTIVE.getCode()))
+
+		//根据stream流汇总wmsTasksRecords中的良品数量
+		int goodQuantity  = wmsTasksRecords.stream()
+				.filter(wmsTasksRecords1 -> WarehouseDictEnum.INVENTORY_ATTRIBUTE_GOOD.getCode().equals(wmsTasksRecords1.getInventoryAttribute()))
 				.mapToInt(WmsTasksRecords::getExecQuantity)
 				.sum();
-		// 更新良品数量
-		if (goodProductSum > 0) {
-			stockInOrderItems.setReceivedQuantity(goodProductSum);
+
+		if(badQuantity > 0){
+			stockInOrderItemUpdate.setDefectiveQuantity(badQuantity);
 		}
-		// 更新不良品数量
-		if (defectProductSum > 0) {
-			stockInOrderItems.setDefectiveQuantity(defectProductSum);
+		if(goodQuantity > 0){
+			stockInOrderItemUpdate.setReceivedQuantity(goodQuantity);
 		}
 
-		// 当良品数量加不良品数量等于采购数量，更新状态为收获完成
-		if (goodProductSum + defectProductSum == stockInOrderItems.getExpectedQuantity()) {
-			stockInOrderItems.setStatus(WarehouseDictEnum.INBOUND_DETAIL_RECEIVED.getCode());
+		if(stockInOrderItemUpdate.getExpectedQuantity().equals(stockInOrderItemUpdate.getReceivedQuantity() + stockInOrderItemUpdate.getDefectiveQuantity())){
+			stockInOrderItemUpdate.setStatus(WarehouseDictEnum.INBOUND_DETAIL_RECEIVED.getCode());
 		}
-		// 更新入库单明细
-		boolean b = this.updateById(stockInOrderItems);
-		if (!b) {
-			throw new RuntimeException("更新入库单明细失败");
-		}
+		updateById(stockInOrderItemUpdate);
 	}
 
-	@Override
-	@Transactional(rollbackFor = Exception.class)
-	public void updateShelfStatus(String stockInOrderItemId) {
-		// 更新入库单明细中的上架数量，当上架数量等于良品收货数量时，更新状态为上架完成
-		// 查询入库单明细
-		WmsStockInOrderItems stockInOrderItems = wmsStockInOrderItemsMapper.selectById(stockInOrderItemId);
-
-		// 根据入库单明细id找到关联的上架任务记录
-		LambdaQueryWrapper<WmsTasksRecords> queryWrapper = new LambdaQueryWrapper<>();
-		queryWrapper.eq(WmsTasksRecords::getStockInOrderItemId, stockInOrderItemId)
+	/**
+	 * 更新上架完成状态
+	 * @param stockInOrderItemId 入库单明细id
+	 */
+	public void updatePutawayStatus(String stockInOrderItemId){
+		//将完成数量更新至入库单明细
+		WmsStockInOrderItems stockInOrderItemUpdate = getById(stockInOrderItemId);
+		//根据入库单明细id查询任务记录表中上架数量总和
+		LambdaQueryWrapper<WmsTasksRecords> eq = new LambdaQueryWrapper<WmsTasksRecords>()
+				.eq(WmsTasksRecords::getStockInOrderItemId, stockInOrderItemId)
 				.eq(WmsTasksRecords::getTaskType, WarehouseDictEnum.TASK_TYPE_PUTAWAY.getCode());
-
-		List<WmsTasksRecords> recordsList = wmsTasksRecordsService.list(queryWrapper);
-
-		// 计算上架数量
-		int shelvedQuantity = recordsList.stream()
-				.mapToInt(WmsTasksRecords::getExecQuantity)
-				.sum();
-
-		// 更新上架数量
-		stockInOrderItems.setShelvedQuantity(shelvedQuantity);
-
-		// 获取良品收货数量（receivedQuantity）
-		int receivedQuantity = stockInOrderItems.getReceivedQuantity() != null ? stockInOrderItems.getReceivedQuantity() : 0;
-
-		// 当上架数量等于良品收货数量时，更新状态为上架完成
-		if (shelvedQuantity >= receivedQuantity) {
-			stockInOrderItems.setStatus(WarehouseDictEnum.INBOUND_DETAIL_PUTAWAYED.getCode());
+		List<WmsTasksRecords> wmsTasksRecordsList = wmsTasksRecordsService.list(eq);
+		int completedQuantity = wmsTasksRecordsList.stream().mapToInt(WmsTasksRecords::getExecQuantity).sum();
+		stockInOrderItemUpdate.setShelvedQuantity(completedQuantity);
+		//如果实际上架数量等于入库单明细的收货数量则更新入库单明细状态为上架完成
+		if(stockInOrderItemUpdate.getReceivedQuantity().equals(stockInOrderItemUpdate.getShelvedQuantity())){
+			stockInOrderItemUpdate.setStatus(WarehouseDictEnum.INBOUND_DETAIL_PUTAWAYED.getCode());//上架完成
 		}
 
-		// 更新入库单明细
-		boolean b = this.updateById(stockInOrderItems);
-		if (!b) {
-			throw new RuntimeException("更新入库单明细上架状态失败");
-		}
+		updateById(stockInOrderItemUpdate);
+
+
 	}
 }

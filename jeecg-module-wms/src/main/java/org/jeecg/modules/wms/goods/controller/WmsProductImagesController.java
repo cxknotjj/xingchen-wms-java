@@ -29,20 +29,21 @@ import org.jeecgframework.poi.excel.entity.ImportParams;
 import org.jeecgframework.poi.excel.view.JeecgEntityExcelView;
 import org.jeecg.common.system.base.controller.JeecgController;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
 import com.alibaba.fastjson.JSON;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 
  /**
  * @Description: 商品图片表
  * @Author: jeecg-boot
- * @Date:   2026-07-23
+ * @Date:   2025-04-15
  * @Version: V1.0
  */
 @Tag(name="商品图片表")
@@ -52,7 +53,8 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 public class WmsProductImagesController extends JeecgController<WmsProductImages, IWmsProductImagesService> {
 	@Autowired
 	private IWmsProductImagesService wmsProductImagesService;
-	
+	 @Value("${jeecg.file-view-domain}")
+	 private String fileOnlinePreviewUrl;
 	/**
 	 * 分页列表查询
 	 *
@@ -65,15 +67,16 @@ public class WmsProductImagesController extends JeecgController<WmsProductImages
 	//@AutoLog(value = "商品图片表-分页列表查询")
 	@Operation(summary="商品图片表-分页列表查询")
 	@GetMapping(value = "/list")
-	public Result<IPage<WmsProductImages>> queryPageList(
-								   WmsProductImages wmsProductImages,
+	public Result<IPage<WmsProductImages>> queryPageList(WmsProductImages wmsProductImages,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
 								   HttpServletRequest req) {
-		IPage<WmsProductImages> pageList = wmsProductImagesService.queryList(wmsProductImages.getProductId(), pageNo, pageSize);
+        QueryWrapper<WmsProductImages> queryWrapper = QueryGenerator.initQueryWrapper(wmsProductImages, req.getParameterMap());
+		Page<WmsProductImages> page = new Page<WmsProductImages>(pageNo, pageSize);
+		IPage<WmsProductImages> pageList = wmsProductImagesService.page(page, queryWrapper);
 		return Result.OK(pageList);
 	}
-	
+
 	/**
 	 *   添加
 	 *
@@ -82,13 +85,15 @@ public class WmsProductImagesController extends JeecgController<WmsProductImages
 	 */
 	@AutoLog(value = "商品图片表-添加")
 	@Operation(summary="商品图片表-添加")
-	@RequiresPermissions("goods:wms_product_images:add")
+//	@RequiresPermissions("goods:wms_product_images:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsProductImages wmsProductImages) {
-		wmsProductImagesService.add(wmsProductImages);
+		String original = wmsProductImages.getOriginal();
+		String replace = original.replace(fileOnlinePreviewUrl, "");
+		wmsProductImages.setOriginal(replace);
+		wmsProductImagesService.save(wmsProductImages);
 		return Result.OK("添加成功！");
 	}
-	
 	/**
 	 *  编辑
 	 *
@@ -97,13 +102,16 @@ public class WmsProductImagesController extends JeecgController<WmsProductImages
 	 */
 	@AutoLog(value = "商品图片表-编辑")
 	@Operation(summary="商品图片表-编辑")
-	@RequiresPermissions("goods:wms_product_images:edit")
+//	@RequiresPermissions("goods:wms_product_images:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody WmsProductImages wmsProductImages) {
+		String original = wmsProductImages.getOriginal();
+		String replace = original.replace(fileOnlinePreviewUrl, "");
+		wmsProductImages.setOriginal(replace);
 		wmsProductImagesService.updateById(wmsProductImages);
 		return Result.OK("编辑成功!");
 	}
-	
+
 	/**
 	 *   通过id删除
 	 *
@@ -112,13 +120,13 @@ public class WmsProductImagesController extends JeecgController<WmsProductImages
 	 */
 	@AutoLog(value = "商品图片表-通过id删除")
 	@Operation(summary="商品图片表-通过id删除")
-	@RequiresPermissions("goods:wms_product_images:delete")
+//	@RequiresPermissions("goods:wms_product_images:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		wmsProductImagesService.removeById(id);
 		return Result.OK("删除成功!");
 	}
-	
+
 	/**
 	 *  批量删除
 	 *
@@ -127,13 +135,13 @@ public class WmsProductImagesController extends JeecgController<WmsProductImages
 	 */
 	@AutoLog(value = "商品图片表-批量删除")
 	@Operation(summary="商品图片表-批量删除")
-	@RequiresPermissions("goods:wms_product_images:deleteBatch")
+//	@RequiresPermissions("goods:wms_product_images:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.wmsProductImagesService.removeByIds(Arrays.asList(ids.split(",")));
 		return Result.OK("批量删除成功!");
 	}
-	
+
 	/**
 	 * 通过id查询
 	 *

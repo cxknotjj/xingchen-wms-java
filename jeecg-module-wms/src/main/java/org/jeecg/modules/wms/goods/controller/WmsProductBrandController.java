@@ -29,20 +29,21 @@ import org.jeecgframework.poi.excel.entity.ImportParams;
 import org.jeecgframework.poi.excel.view.JeecgEntityExcelView;
 import org.jeecg.common.system.base.controller.JeecgController;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
 import com.alibaba.fastjson.JSON;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 
  /**
  * @Description: 商品品牌
  * @Author: jeecg-boot
- * @Date:   2026-07-23
+ * @Date:   2025-07-19
  * @Version: V1.0
  */
 @Tag(name="商品品牌")
@@ -52,7 +53,8 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 public class WmsProductBrandController extends JeecgController<WmsProductBrand, IWmsProductBrandService> {
 	@Autowired
 	private IWmsProductBrandService wmsProductBrandService;
-	
+	 @Value("${jeecg.file-view-domain}")
+	 private String fileOnlinePreviewUrl;
 	/**
 	 * 分页列表查询
 	 *
@@ -74,7 +76,7 @@ public class WmsProductBrandController extends JeecgController<WmsProductBrand, 
 		IPage<WmsProductBrand> pageList = wmsProductBrandService.page(page, queryWrapper);
 		return Result.OK(pageList);
 	}
-	
+
 	/**
 	 *   添加
 	 *
@@ -86,10 +88,13 @@ public class WmsProductBrandController extends JeecgController<WmsProductBrand, 
 	@RequiresPermissions("goods:wms_product_brand:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsProductBrand wmsProductBrand) {
-		wmsProductBrandService.add(wmsProductBrand);
+		String logo = wmsProductBrand.getLogo();
+		String replace = logo.replace(fileOnlinePreviewUrl, "");
+		wmsProductBrand.setLogo( replace);
+		wmsProductBrandService.save(wmsProductBrand);
 		return Result.OK("添加成功！");
 	}
-	
+
 	/**
 	 *  编辑
 	 *
@@ -101,10 +106,13 @@ public class WmsProductBrandController extends JeecgController<WmsProductBrand, 
 	@RequiresPermissions("goods:wms_product_brand:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody WmsProductBrand wmsProductBrand) {
+		String logo = wmsProductBrand.getLogo();
+		String replace = logo.replace(fileOnlinePreviewUrl, "");
+		wmsProductBrand.setLogo( replace);
 		wmsProductBrandService.updateById(wmsProductBrand);
 		return Result.OK("编辑成功!");
 	}
-	
+
 	/**
 	 *   通过id删除
 	 *
@@ -119,7 +127,7 @@ public class WmsProductBrandController extends JeecgController<WmsProductBrand, 
 		wmsProductBrandService.removeById(id);
 		return Result.OK("删除成功!");
 	}
-	
+
 	/**
 	 *  批量删除
 	 *
@@ -134,7 +142,7 @@ public class WmsProductBrandController extends JeecgController<WmsProductBrand, 
 		this.wmsProductBrandService.removeByIds(Arrays.asList(ids.split(",")));
 		return Result.OK("批量删除成功!");
 	}
-	
+
 	/**
 	 * 通过id查询
 	 *

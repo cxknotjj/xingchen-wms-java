@@ -9,9 +9,13 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 /**
  * @Description: 任务执行记录表
  * @Author: jeecg-boot
- * @Date:   2026-07-24
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 public interface WmsTasksRecordsMapper extends BaseMapper<WmsTasksRecords> {
+    /**
+     * 任务记录列表
+     */
+    public List<WmsTasksRecords> queryList(WmsTasksRecords wmsTasksRecords);
 
 }

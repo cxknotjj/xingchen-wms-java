@@ -1,57 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.jeecg.modules.wms.inventory.mapper.WmsInventoryMapper">
+    <!--综合查询库存列表-->
+    <select id="queryList" resultType="org.jeecg.modules.wms.inventory.entity.WmsInventory" parameterType="org.jeecg.modules.wms.inventory.entity.WmsInventory">
+        SELECT a.*,
+        b.product_name,
+        b.product_code,
+        c.owner_code,
+        c.owner_name,
+        d.location_code,
+        d.location_type,
+        d.location_category,
+        e.zone_name,
+        e.zone_type,
+        f.warehouse_name
+        FROM wms_inventory a,
+        wms_products b,
+        wms_cargo_owners c,
+        wms_storage_locations d,
+        wms_storage_zones e,
+        wms_warehouses f
+        WHERE a.product_id = b.id
+        and b.owner_id = c.id
+        and a.location_code = d.location_code
+        and d.zone_id=e.id
+        and f.id=e.warehouse_id
+        <if test="productName != null and productName != ''">
+            AND b.product_name LIKE concat('%',#{productName},'%')
+        </if>
+        <if test="productCode != null and productCode != ''">
+            AND b.product_code = #{productCode}
+        </if>
+        <if test="ownerCode != null and ownerCode != ''">
+            AND c.owner_code = #{ownerCode}
+        </if>
+        <if test="ownerName != null and ownerName != ''">
+            AND c.owner_name LIKE concat('%',#{ownerName},'%')
+        </if>
+        <if test="warehouseName != null and warehouseName != ''">
+            AND f.warehouse_name LIKE concat('%',#{warehouseName},'%')
+        </if>
+        <if test="warehouseCode != null and warehouseCode != ''">
+            AND f.warehouse_code = #{warehouseCode}
+        </if>
+        <if test="zoneType != null and zoneType != ''">
+            AND e.zone_type = #{zoneType}
+        </if>
+        <if test="locationCode != null and locationCode != ''">
+            AND d.location_code = #{locationCode}
+        </if>
 
-    <select id="queryInventoryList" parameterType="org.jeecg.modules.wms.inventory.entity.WmsInventory" resultType="org.jeecg.modules.wms.inventory.entity.WmsInventory">
-        SELECT 
-            i.id,
-            i.owner_id,
-            i.product_id,
-            i.location_code,
-            i.stock_quantity,
-            i.allocated_quantity,
-            i.available_quantity,
-            i.batch_number,
-            i.stock_in_time,
-            i.expiry_date,
-            i.is_sellable,
-            i.warehouse_id,
-            i.create_by,
-            i.create_time,
-            i.update_by,
-            i.update_time,
-            i.sys_org_code,
-            p.product_code,
-            p.product_name,
-            wo.owner_name,
-            wo.owner_code,
-            w.warehouse_name,
-            l.location_type,
-            z.zone_type,
-            z.zone_name
-        FROM wms_inventory i
-        INNER JOIN wms_products p ON i.product_id = p.id
-        INNER JOIN wms_warehouses w ON i.warehouse_id = w.id
-        INNER JOIN wms_storage_locations l ON i.location_code = l.location_code
-        INNER JOIN wms_storage_zones z ON l.zone_id = z.id
-        INNER JOIN wms_cargo_owners wo ON p.owner_id = wo.id
-        WHERE 1=1
-        <if test="wmsInventory.productId != null and wmsInventory.productId != ''">
-            AND i.product_id = #{wmsInventory.productId}
-        </if>
-        <if test="wmsInventory.locationCode != null and wmsInventory.locationCode != ''">
-            AND i.location_code = #{wmsInventory.locationCode}
-        </if>
-        <if test="wmsInventory.batchNumber != null and wmsInventory.batchNumber != ''">
-            AND i.batch_number = #{wmsInventory.batchNumber}
-        </if>
-        <if test="wmsInventory.warehouseId != null and wmsInventory.warehouseId != ''">
-            AND i.warehouse_id = #{wmsInventory.warehouseId}
-        </if>
-        <if test="wmsInventory.isSellable != null and wmsInventory.isSellable != ''">
-            AND i.is_sellable = #{wmsInventory.isSellable}
-        </if>
-        ORDER BY i.create_time DESC
     </select>
-
 </mapper>

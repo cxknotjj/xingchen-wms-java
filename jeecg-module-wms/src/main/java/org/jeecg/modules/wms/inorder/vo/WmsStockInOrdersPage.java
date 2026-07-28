@@ -19,7 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * @Description: 入库单主表
  * @Author: jeecg-boot
- * @Date:   2026-07-24
+ * @Date:   2025-08-30
  * @Version: V1.0
  */
 @Data

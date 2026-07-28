@@ -22,7 +22,7 @@ import lombok.experimental.Accessors;
 /**
  * @Description: 商品品牌
  * @Author: jeecg-boot
- * @Date:   2026-07-23
+ * @Date:   2025-07-19
  * @Version: V1.0
  */
 @Data

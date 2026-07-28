@@ -67,11 +67,10 @@ public class ImportGoodsListener implements ReadListener<WmsProductsImport> {
     }
 
     /**
-     * 将导入商品存入数据库
+     * 加上存储数据库
      */
     private void saveData() {
         log.info("{}条数据，开始存储数据库！", cachedDataList.size());
-
         wmsProductsService.importProduct(cachedDataList);
         log.info("存储数据库成功！");
     }
