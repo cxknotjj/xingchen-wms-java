@@ -43,4 +43,8 @@ public interface IWmsOutOrdersItemsService extends IService<WmsOutOrdersItems> {
 	 */
 	public void updatePickedQuantityAndStatus(String orderItemId, Integer pickedQuantity);
 
+	/**
+	 * 更新出库单明细的已分配数量
+	 */
+	public void allocateStock(String orderItemId, Integer allocateQuantity,Integer expectedQuantity);
 }

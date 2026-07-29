@@ -2,6 +2,7 @@ package org.jeecg.modules.wms.outorder.mapper;
 
 import java.util.List;
 
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.jeecg.modules.wms.outorder.entity.WmsOutOrders;
@@ -14,6 +15,7 @@ import org.jeecg.modules.wms.outorder.entity.WmsOutOrdersAllocation;
  * @Date:   2025-05-19
  * @Version: V1.0
  */
+@Mapper
 public interface WmsOutOrdersMapper extends BaseMapper<WmsOutOrders> {
 
     /**

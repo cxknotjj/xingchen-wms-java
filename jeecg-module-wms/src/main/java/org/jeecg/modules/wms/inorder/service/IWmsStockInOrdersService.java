@@ -76,4 +76,5 @@ public interface IWmsStockInOrdersService extends IService<WmsStockInOrders> {
 	 */
 	String updatePutawayStatus(String stockInOrderId);
 
+
 }

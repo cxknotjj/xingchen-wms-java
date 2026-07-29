@@ -119,5 +119,10 @@ public interface IWmsOutOrdersService extends IService<WmsOutOrders> {
 	 */
 	void audit(WmsOutOrders wmsOutOrders);
 
+	/**
+	 * 分配库存
+	 */
+	public String allocateStockToItems(WmsOutOrdersItems wmsOutOrdersItems,List<WmsInventory> inventoryList);
+
 
 }
