@@ -76,4 +76,19 @@ public class WmsOutOrdersItemsServiceImpl extends ServiceImpl<WmsOutOrdersItemsM
 			throw new JeecgBootException("为出库单明细拣货数量及状态失败!");
 		}
 	}
+
+    @Override
+    public void allocateStock(String orderItemId, Integer allocateQuantity, Integer expectedQuantity) {
+		LambdaUpdateWrapper<WmsOutOrdersItems> wmsOutOrdersItemsLambdaUpdateWrapper = new LambdaUpdateWrapper<WmsOutOrdersItems>()
+				.eq(WmsOutOrdersItems::getId, orderItemId)
+				.setSql("allocated_quantity = allocated_quantity + {0}",allocateQuantity)
+				.le(WmsOutOrdersItems::getAllocatedQuantity, expectedQuantity - allocateQuantity);
+		int update = wmsOutOrdersItemsMapper.update(null, wmsOutOrdersItemsLambdaUpdateWrapper);
+		if(update<=0){
+			throw new JeecgBootException("更新入库单明细失败!");
+		}
+		// allocated <= expectedQuantity - allocateQuantity
+		// 50 <= 200 - 150
+
+	}
 }

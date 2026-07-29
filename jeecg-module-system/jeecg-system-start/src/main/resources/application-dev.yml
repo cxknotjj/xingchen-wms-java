@@ -24,6 +24,8 @@ management:
         include: metrics,httpexchanges,jeecghttptrace
 
 spring:
+  main:
+    allow-circular-references: true
   flyway:
     # 是否启用flyway
     enabled: true
