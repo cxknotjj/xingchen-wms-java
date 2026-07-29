@@ -27,6 +27,13 @@
 	<select id="selectAllocatedQuantityByWaveId"
 			resultType="org.jeecg.modules.wms.outorder.entity.WmsOutOrdersAllocation"
 			parameterType="java.lang.String">
+		select b.*, p.owner_id, p.product_barcode
+		from (select a.sku_id, a.location_code, a.batch_number, sum(a.allocated_quantity) allocated_quantity
+			  from wms_out_orders_allocation a
+			  where a.order_id in (select id from wms_out_orders where wave_id = #{waveId})
+			  group by a.sku_id, a.location_code, a.batch_number) b
+				 left join wms_products p on b.sku_id = p.id
+
 
 
 	</select>
