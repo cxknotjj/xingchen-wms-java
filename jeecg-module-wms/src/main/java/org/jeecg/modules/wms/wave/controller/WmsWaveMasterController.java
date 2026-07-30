@@ -11,15 +11,20 @@ import org.jeecg.common.system.base.controller.JeecgController;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.wms.outorder.entity.WmsOutOrders;
 import org.jeecg.modules.wms.outorder.service.IWmsOutOrdersService;
+import org.jeecg.modules.wms.wave.entity.WmsWaveStrategy;
 import org.jeecg.modules.wms.wave.service.IPickingTasksService;
+import org.jeecg.modules.wms.wave.service.IWaveStrategyService;
+import org.jeecg.modules.wms.wave.strategy.IWaveStrategy;
+import org.jeecg.modules.wms.wave.strategy.WaveCrateClient;
 import org.jeecg.modules.wms.wave.vo.WmsWaveAdd;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.ModelAndView;
-import java.util.Arrays;
-import java.util.HashMap;
+
+import java.util.*;
+
 import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.wms.wave.entity.WmsWaveMaster;
 import org.jeecg.modules.wms.wave.service.IWmsWaveMasterService;
@@ -36,8 +41,6 @@ import org.jeecgframework.poi.excel.view.JeecgEntityExcelView;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
  /**
@@ -60,6 +63,10 @@ public class WmsWaveMasterController extends JeecgController<WmsWaveMaster, IWms
 
 	 @Autowired
 	private IPickingTasksService pickingTasksService;
+
+	 @Autowired
+	 private IWaveStrategyService waveStrategyService;
+
 
 
 	/*---------------------------------主表处理-begin-------------------------------------*/
@@ -109,7 +116,14 @@ public class WmsWaveMasterController extends JeecgController<WmsWaveMaster, IWms
 	 @Operation(summary="波次主表-创建波次")
 	 @PostMapping(value = "/createWave")
 	 public Result<String> createWave(@RequestBody WmsWaveAdd wmsWaveAdd) {
-		 
+		 String strategyCodes = wmsWaveAdd.getStrategyCodes();
+		 String warehouseId = wmsWaveAdd.getWarehouseId();
+		 if (oConvertUtils.isEmpty(strategyCodes)) {
+			 return Result.error("策略ids不能为空");
+		 }
+		 List<String> strategyCodeArray = Arrays.asList(strategyCodes.split(","));
+
+		 wmsWaveMasterService.createWave(warehouseId,strategyCodeArray);
 		 return Result.OK("创建成功！");
 
     }

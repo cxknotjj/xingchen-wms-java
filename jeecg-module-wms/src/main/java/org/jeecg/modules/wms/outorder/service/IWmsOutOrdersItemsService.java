@@ -47,4 +47,11 @@ public interface IWmsOutOrdersItemsService extends IService<WmsOutOrdersItems> {
 	 * 更新出库单明细的已分配数量
 	 */
 	public void allocateStock(String orderItemId, Integer allocateQuantity,Integer expectedQuantity);
+
+	/**
+	 * 根据入库单ids获得入库单明细表
+	 * @param orderIds
+	 * @return
+	 */
+    List<WmsOutOrdersItems> selectByOrderIds(List<String> orderIds);
 }

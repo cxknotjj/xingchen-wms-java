@@ -91,4 +91,11 @@ public class WmsOutOrdersItemsServiceImpl extends ServiceImpl<WmsOutOrdersItemsM
 		// 50 <= 200 - 150
 
 	}
+
+    @Override
+    public List<WmsOutOrdersItems> selectByOrderIds(List<String> orderIds) {
+		LambdaQueryWrapper<WmsOutOrdersItems> query = new LambdaQueryWrapper<>();
+			query.in(WmsOutOrdersItems::getOrderId, orderIds);
+		return this.list(query);
+	}
 }

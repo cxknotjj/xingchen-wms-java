@@ -25,11 +25,14 @@ public class EOWWaveStrategy extends IWaveStrategy {
     @Override
     public void process(List<WmsOutOrders> orders,
                                     Map<String, List<WmsOutOrdersAllocation>> allocationsMap) {
+
+        //包裹策略为STANDARD_STRATEGY
+        String shipmentStrategy="SPLIT_BY_WEIGHT_STRATEGY";
+
         List<WmsOutOrders> matchedOrders = orders.stream()
             .filter(order -> order.getWaveId()==null && order.getStatus().equals(WarehouseDictEnum.OUTBOUND_ALLOCATED.getCode()) )
             .collect(Collectors.toList());
-        //包裹策略为STANDARD_STRATEGY
-        String shipmentStrategy="SPLIT_BY_WEIGHT_STRATEGY";
+
         if (!matchedOrders.isEmpty()) {
             wmsWaveMasterService.addWave(matchedOrders, getStrategyType(),shipmentStrategy);
         }

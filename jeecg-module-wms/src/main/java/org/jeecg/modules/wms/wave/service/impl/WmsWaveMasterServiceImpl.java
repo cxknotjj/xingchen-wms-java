@@ -17,6 +17,7 @@ import org.jeecg.modules.wms.wave.mapper.WmsWaveMasterMapper;
 import org.jeecg.modules.wms.wave.service.IWmsWaveMasterService;
 import org.jeecg.modules.wms.wave.service.IWmsWaveSkuSummaryService;
 import org.jeecg.modules.wms.wave.strategy.IWaveStrategy;
+import org.jeecg.modules.wms.wave.strategy.WaveCrateClient;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -47,7 +48,6 @@ public class WmsWaveMasterServiceImpl extends ServiceImpl<WmsWaveMasterMapper, W
 	private IWmsWaveSkuSummaryService iWmsWaveSkuSummaryService;
 
 	//波次处理策略
-	@Lazy
 	@Autowired
 	private  List<IWaveStrategy> strategies;
 
@@ -216,6 +216,27 @@ public class WmsWaveMasterServiceImpl extends ServiceImpl<WmsWaveMasterMapper, W
 			updateById(wave);
 		}
 
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void createWave(String warehouseId, List<String> strategyCodeArray) {
+		// 根据仓库id查询未分配的出库单
+		List<WmsOutOrders> orders = wmsOutOrdersService.selectUnassignedOrders(warehouseId);
+		// 获取出库单ids
+		List<String> orderIds = orders.stream()
+				.map(WmsOutOrders::getId)
+				.collect(Collectors.toList());
+
+		// 获取出库单明细分配
+		Map<String, List<WmsOutOrdersAllocation>> allocationsMap = wmsOutOrdersAllocationMapper.selectAllocationsByOrderIds(orderIds)
+				.stream()
+				.collect(Collectors.groupingBy(WmsOutOrdersAllocation::getOrderId));
+
+		// 创建客户端策略类 strategies是由ioc容器自动注入的
+		WaveCrateClient waveCrateClient = new WaveCrateClient(strategies,strategyCodeArray);
+		// 执行策略类
+		waveCrateClient.process(orders, allocationsMap);
 	}
 //	public void updatePickStatus(String waveId){
 //		WmsWaveMaster wave = getById(waveId);

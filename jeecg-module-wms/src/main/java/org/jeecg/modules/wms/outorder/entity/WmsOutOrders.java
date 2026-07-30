@@ -185,6 +185,9 @@ public class WmsOutOrders implements Serializable {
     @TableField(exist = false)
     private String[] statusArray;
 
+    //商品编码 skuid
+    @TableField(exist = false)
+    private String skuId;
 
 
 }
