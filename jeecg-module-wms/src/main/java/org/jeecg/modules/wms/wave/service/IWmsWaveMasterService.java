@@ -65,4 +65,11 @@ public interface IWmsWaveMasterService extends IService<WmsWaveMaster> {
 	 * 更新完成分拣订单数量
 	 */
 	void updateCompleteSortingOrderQuantity(List<String> waveIds);
+
+	/**
+	 * 创建波次
+	 * @param warehouseId
+	 * @param strategyCodeArray
+	 */
+    void createWave(String warehouseId, List<String> strategyCodeArray);
 }

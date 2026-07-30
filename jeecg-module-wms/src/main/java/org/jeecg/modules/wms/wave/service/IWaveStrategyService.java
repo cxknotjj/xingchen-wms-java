@@ -11,4 +11,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IWaveStrategyService extends IService<WmsWaveStrategy> {
 
+    /**
+     * 根据波次编码查询策略类
+     * @param strategyType
+     * @return
+     */
+    WmsWaveStrategy getStrategyByCode(String strategyType);
 }
