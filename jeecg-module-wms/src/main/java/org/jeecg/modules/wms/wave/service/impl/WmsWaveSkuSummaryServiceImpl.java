@@ -31,11 +31,11 @@ public class WmsWaveSkuSummaryServiceImpl extends ServiceImpl<WmsWaveSkuSummaryM
     /**
      * 更新波次下拣货明细表的状态为已拣货
      */
-    public void updatePickedStatus(String waveId){
+    public boolean updatePickedStatus(String waveId){
         LambdaUpdateWrapper<WmsWaveSkuSummary> updateWrapper = new LambdaUpdateWrapper<WmsWaveSkuSummary>()
                 .eq(WmsWaveSkuSummary::getWaveId, waveId)
                 .eq(WmsWaveSkuSummary::getStatus, WarehouseDictEnum.WAVESKU_PICKING.getCode())
                         .set(WmsWaveSkuSummary::getStatus, WarehouseDictEnum.WAVESKU_PICKED.getCode());
-        update(null, updateWrapper);
+        return update(null, updateWrapper);
     }
 }

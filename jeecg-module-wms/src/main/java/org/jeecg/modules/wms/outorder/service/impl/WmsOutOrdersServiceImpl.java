@@ -97,13 +97,16 @@ public class WmsOutOrdersServiceImpl extends ServiceImpl<WmsOutOrdersMapper, Wms
 
 	@Override
 	public List<WmsOutOrders> selectByMainId(String mainId) {
-		return List.of();
+		return wmsOutOrdersMapper.selectByMainId(mainId);
 	}
 
 	@Override
 	public List<WmsOutOrders> selectByWaveId(String waveId) {
-		return List.of();
+		//根据波次id查询其下的出库单id
+		List<WmsOutOrders> wmsOutOrders = wmsOutOrdersMapper.selectList(new LambdaQueryWrapper<WmsOutOrders>().eq(WmsOutOrders::getWaveId, waveId));
+		return wmsOutOrders;
 	}
+
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)

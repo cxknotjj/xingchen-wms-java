@@ -20,5 +20,5 @@ public interface IWmsWaveSkuSummaryService extends IService<WmsWaveSkuSummary> {
     /**
      * 更新波次下拣货明细表的状态为已拣货
      */
-    public void updatePickedStatus(String waveId);
+    public boolean updatePickedStatus(String waveId);
 }

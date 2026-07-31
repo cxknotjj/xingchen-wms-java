@@ -83,7 +83,7 @@ public class WmsShortageRegistrationController extends JeecgController<WmsShorta
 	 */
 	@AutoLog(value = "缺货登记表-添加")
 	@Operation(summary="缺货登记表-添加")
-	@RequiresPermissions("wave:wms_shortage_registration:add")
+//	@RequiresPermissions("wave:wms_shortage_registration:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody WmsShortageRegistration wmsShortageRegistration) {
 		wmsShortageRegistrationService.add(wmsShortageRegistration);
