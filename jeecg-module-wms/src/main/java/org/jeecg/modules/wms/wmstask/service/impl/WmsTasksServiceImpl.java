@@ -250,6 +250,10 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
         wmsTasksRecords.setStockInOrderId(wmsTasks.getStockInOrderId());
         //入库单明细id
         wmsTasksRecords.setStockInOrderItemId(wmsTasks.getStockInOrderItemId());
+        // 波次id
+        wmsTasksRecords.setWaveOrderId(wmsTasks.getWaveOrderId());
+        // 波次拣货明细id
+        wmsTasksRecords.setWaveSkuSummaryId(wmsTasks.getWaveSkuSummaryId());
         //任务id
         wmsTasksRecords.setTaskId(wmsTasks.getId());
         //商品 id
