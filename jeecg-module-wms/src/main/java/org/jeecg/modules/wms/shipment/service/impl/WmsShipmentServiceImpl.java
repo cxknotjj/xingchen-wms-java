@@ -268,6 +268,7 @@ public class WmsShipmentServiceImpl extends ServiceImpl<WmsShipmentMapper, WmsSh
 		// 2. 为每个出库单创建包裹
 		for (WmsOutOrders order : wmsOutOrders) {
 			try {
+				// 只有通过代理对象才能调用事务方法
 				int i = owner.generateForSingleOrder(order);
 				// 记录成功创建的包裹数量
 				createdCount += i;

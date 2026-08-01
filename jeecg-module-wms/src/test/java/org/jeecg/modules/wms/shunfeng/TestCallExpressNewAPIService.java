@@ -19,8 +19,8 @@ public class TestCallExpressNewAPIService {
 	/**丰桥新沙箱测试顾客编码  Yg4Zf06w_sxZs3A5D
                       校验码  3Xdk1jqeG1Xod9nUXus8Op7DNOkchTnw
     **/
-	private static final String CLIENT_CODE = "Y2VL6F82";  //此处替换为您在丰桥平台获取的顾客编码
-	private static final String CHECK_WORD = "jy1HZyiDinIuipRALDjdKksUtstLveBy";//此处替换为您在丰桥平台获取的校验码
+	private static final String CLIENT_CODE = "";  //此处替换为您在丰桥平台获取的顾客编码
+	private static final String CHECK_WORD = "";//此处替换为您在丰桥平台获取的校验码
 
 
 	//沙箱环境的地址 -PRO
@@ -66,13 +66,13 @@ public class TestCallExpressNewAPIService {
         //找到下载sdk下json文件的路径
 //        byte[] bytes = IoUtil.readBytes(new FileInputStream("D:\\course\\wms\\资料\\SF-CSIM-EXPRESS-SDK-V2.1.7-20220224\\SF-CSIM-EXPRESS-SDK-V2.1.7\\json\\ExpressJson\\01.order.json"));
 //        byte[] bytes = IoUtil.readBytes(new FileInputStream("D:\\course\\wms\\code\\02.order.query.json"));
-        byte[] bytes = IoUtil.readBytes(new FileInputStream("D:\\course\\wms\\资料\\SF-CSIM-EXPRESS-SDK-V2.1.7-20220224\\SF-CSIM-EXPRESS-SDK-V2.1.7\\json\\ExpressJson\\05.route_query_by_MailNo.json"));
+        byte[] bytes = IoUtil.readBytes(new FileInputStream("D:\\Desktop\\01.order.json"));
 //        byte[] bytes = IoUtil.readBytes(new FileInputStream("D:\\course\\wms\\资料\\SF-CSIM-EXPRESS-SDK-V2.1.7-20220224\\SF-CSIM-EXPRESS-SDK-V2.1.7\\json\\ExpressJson\\20.cloud_print_waybills_2.json"));
         String msgData = new String(bytes);
 
         params.put("partnerID", CLIENT_CODE);  // 顾客编码 ，对应丰桥上获取的clientCode
         params.put("requestID", UUID.randomUUID().toString().replace("-", ""));
-        params.put("serviceCode","EXP_RECE_SEARCH_ROUTES");// 接口服务码
+        params.put("serviceCode","EXP_RECE_CREATE_ORDER");// 接口服务码
         params.put("timestamp", timeStamp);
         params.put("msgData", msgData);
         params.put("msgDigest", tools.getMsgDigest(msgData,timeStamp,CHECK_WORD));
