@@ -12,9 +12,16 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jeecg.common.constant.ProvinceCityArea;
 import org.jeecg.modules.wms.goods.entity.WmsCargoOwners;
+import org.jeecg.modules.wms.goods.entity.WmsProducts;
 import org.jeecg.modules.wms.goods.service.IWmsCargoOwnersService;
+import org.jeecg.modules.wms.goods.service.IWmsProductsService;
 import org.jeecg.modules.wms.outorder.entity.WmsOutOrders;
+import org.jeecg.modules.wms.outorder.entity.WmsOutOrdersItems;
+import org.jeecg.modules.wms.outorder.service.IWmsOutOrdersItemsService;
 import org.jeecg.modules.wms.shipment.entity.WmsShipment;
+import org.jeecg.modules.wms.shipment.entity.WmsShipmentDetail;
+import org.jeecg.modules.wms.shipment.service.IWmsShipmentDetailService;
+import org.jeecg.modules.wms.shipment.service.IWmsShipmentService;
 import org.jeecg.modules.wms.waybill.service.IWmsSfService;
 import org.jeecg.modules.wms.waybill.sf.SfApiResponse;
 import org.jeecg.modules.wms.waybill.sf.SfExpressUtil;
@@ -44,6 +51,12 @@ public class IWmsSfServiceImpl implements IWmsSfService {
 
     @Autowired
     private IWmsCargoOwnersService wmsCargoOwnersService;
+
+    @Autowired
+    private IWmsOutOrdersItemsService wmsOutOrdersItemsService;
+
+    @Autowired
+    private IWmsProductsService wmsProductsService;
 
     /**
      * 请求快递平台获取运单号
@@ -95,7 +108,6 @@ public class IWmsSfServiceImpl implements IWmsSfService {
          *    }
          */
         sfOrderInfo.setOrderId(order.getOrderNo());
-        sfOrderInfo.setOrderId(order.getOrderNo());
         sfOrderInfo.setPayMethod(1);
         sfOrderInfo.setParcelQty(shipments.size());//包裹数量
         sfOrderInfo.setTotalWeight(6);//测试数据
@@ -133,58 +145,63 @@ public class IWmsSfServiceImpl implements IWmsSfService {
         sfOrderInfo.setContactInfoList(contactInfoList);
         //商品信息
         List<SfOrderInfo.CargoDetail> cargoDetails = new ArrayList<>();
-        //测试数据
-        SfOrderInfo.CargoDetail cargoDetail = new SfOrderInfo.CargoDetail();
-        cargoDetail.setName("君宝牌地毯");
-        cargoDetail.setWeight(0.1);
-        cargoDetail.setCount(1.0);
-        cargoDetail.setVolume(0.0);
-        cargoDetail.setAmount(308.0);
-        cargoDetails.add(cargoDetail);
-        sfOrderInfo.setCargoDetails(cargoDetails);
-        //生成json
+        // 查询出库单明细
+        List<WmsOutOrdersItems> outOrderDetails = wmsOutOrdersItemsService.selectByMainId(order.getId());
+        // 遍历
+        for (WmsOutOrdersItems outOrderDetail : outOrderDetails) {
+            // 查询商品信息
+            WmsProducts product = wmsProductsService.getById(outOrderDetail.getSkuId());
+            SfOrderInfo.CargoDetail cargoDetail = new SfOrderInfo.CargoDetail();
+            cargoDetail.setName(product.getProductName());
+            cargoDetail.setWeight(product.getNetWeight());//单位重量
+            cargoDetail.setCount(outOrderDetail.getPackedQuantity());
+            cargoDetail.setVolume(0.0);
+            cargoDetail.setAmount(308.0);
+            cargoDetails.add(cargoDetail);
+            sfOrderInfo.setCargoDetails(cargoDetails);
+        }
+//        cargoDetail.setVolume(0.0);
+//        cargoDetail.setAmount(308.0);
+//        cargoDetails.add(cargoDetail);
+//        sfOrderInfo.setCargoDetails(cargoDetails);
         String sfOrderInfoJson = JSON.toJSONString(sfOrderInfo);
         String responseBody = SfExpressUtil.post(SfExpressUtil.EXP_RECE_CREATE_ORDER, sfOrderInfoJson);
-        /**
-         * {"apiErrorMsg":"","apiResponseID":"0001980D3635003FCDC966C657C6883F","apiResultCode":"A1000","apiResultData":"{\"success\":false,\"errorCode\":\"8016\",\"errorMsg\":\"重复下单\",\"msgData\":null}"}
-         */
-//		HashMap hashMap = JSON.parseObject("{\"success\":false,\"errorCode\":\"8016\",\"errorMsg\":\"重复下单\",\"msgData\":null}", HashMap.class);
-        //将响应结果转换成SfApiResponse
         SfApiResponse sfApiResponse = JSON.parseObject(responseBody, SfApiResponse.class);
         String apiResultDataJson = sfApiResponse.getApiResultData();
         SfApiResponse.ApiResultData1 apiResultData11 = JSON.parseObject(apiResultDataJson, SfApiResponse.ApiResultData1.class);
-        //如果重复下单则调用查询订单接口
+
+        List<String> waybillNos = null;
+        String msgDataJson = apiResultData11.getMsgData();
+
         if ("重复下单".equals(apiResultData11.getErrorMsg())) {
-            /**
-             * {
-             * 	"searchType": "1",
-             * 	"orderId": "QIAO-20200618-00522",
-             * 	"language": "zh-cn"
-             * }
-             */
-            //查询订单请求对象
             SfExpressUtil.SearchOrderParam searchOrderParam = new SfExpressUtil.SearchOrderParam();
             searchOrderParam.setOrderId(order.getOrderNo());
             searchOrderParam.setSearchType("1");
             searchOrderParam.setLanguage("zh-cn");
             String searchOrderResponseBody = SfExpressUtil.post(SfExpressUtil.EXP_RECE_SEARCH_ORDER_RESP, JSON.toJSONString(searchOrderParam));
-            /**
-             * {"apiErrorMsg":"","apiResponseID":"0001980D4990BD3FE464FACE9440A73F","apiResultCode":"A1000","apiResultData":"{\"success\":true,\"errorCode\":\"S0000\",\"errorMsg\":null,\"msgData\":{\"orderId\":\"OBD202506110007\",\"returnExtraInfoList\":null,\"waybillNoInfoList\":[{\"waybillType\":1,\"waybillNo\":\"SF7444497657631\"}],\"origincode\":\"710\",\"destcode\":\"719\",\"filterResult\":\"2\",\"remark\":null,\"routeLabelInfo\":[{\"code\":\"1000\",\"routeLabelData\":{\"waybillNo\":\"SF7444497657631\",\"sourceTransferCode\":\"710\",\"sourceCityCode\":\"710\",\"sourceDeptCode\":\"710\",\"sourceTeamCode\":\"\",\"destCityCode\":\"719\",\"destDeptCode\":\"719J\",\"destDeptCodeMapping\":\"\",\"destTeamCode\":\"009\",\"destTeamCodeMapping\":\"\",\"destTransferCode\":\"719\",\"destRouteLabel\":\"719-719J-011\",\"proName\":\"顺丰标快\",\"cargoTypeCode\":\"T6\",\"limitTypeCode\":\"T6\",\"expressTypeCode\":\"B1\",\"codingMapping\":\"K14\",\"codingMappingOut\":\"\",\"xbFlag\":\"0\",\"printFlag\":\"000000000\",\"twoDimensionCode\":\"MMM={'k1':'719','k2':'719J','k3':'009','k4':'T801','k5':'SF7444497657631','k6':'','k7':'de29da16'}\",\"proCode\":\"T801\",\"printIcon\":\"00000000\",\"abFlag\":\"\",\"destPortCode\":\"\",\"destCountry\":\"\",\"destPostCode\":\"\",\"goodsValueTotal\":\"\",\"currencySymbol\":\"\",\"cusBatch\":\"\",\"goodsNumber\":\"\",\"errMsg\":\"\",\"checkCode\":\"de29da16\",\"proIcon\":\"\",\"fileIcon\":\"\",\"fbaIcon\":\"\",\"icsmIcon\":\"\",\"destGisDeptCode\":\"719J\",\"newIcon\":null},\"message\":\"SF7444497657631:\"}],\"contactInfo\":null,\"clientCode\":\"Y2VL6F82\",\"serviceList\":null}}"}
-             */
+
             SfApiResponse sfApiResponse1 = JSON.parseObject(searchOrderResponseBody, SfApiResponse.class);
             String apiResultDataJson2 = sfApiResponse1.getApiResultData();
             SfApiResponse.ApiResultData1 apiResultData12 = JSON.parseObject(apiResultDataJson2, SfApiResponse.ApiResultData1.class);
-            String msgData = apiResultData12.getMsgData();
-            SfApiResponse.MsgData apiResultData1 = JSON.parseObject(msgData, SfApiResponse.MsgData.class);
-            List<SfApiResponse.WaybillNoInfo> waybillNoInfoList = apiResultData1.getWaybillNoInfoList();
-            if (waybillNoInfoList != null && waybillNoInfoList.size() == shipmentSize) {
-                //取出waybillNoInfoList中的运单号,得到List<String>
-                List<String> waybillNos = waybillNoInfoList.stream().map(SfApiResponse.WaybillNoInfo::getWaybillNo).collect(Collectors.toList());
-                return waybillNos;
+            String searchMsgDataJson = apiResultData12.getMsgData();
+            SfApiResponse.MsgData searchMsgData = JSON.parseObject(searchMsgDataJson, SfApiResponse.MsgData.class);
+            List<SfApiResponse.WaybillNoInfo> waybillNoInfoList = searchMsgData.getWaybillNoInfoList();
+            if (waybillNoInfoList != null && !waybillNoInfoList.isEmpty()) {
+                waybillNos = waybillNoInfoList.stream()
+                        .map(SfApiResponse.WaybillNoInfo::getWaybillNo)
+                        .collect(Collectors.toList());
             }
-
+        } else {
+            SfApiResponse.MsgData msgData = JSON.parseObject(msgDataJson, SfApiResponse.MsgData.class);
+            List<SfApiResponse.WaybillNoInfo> waybillNoInfoList = msgData.getWaybillNoInfoList();
+            if (waybillNoInfoList != null && !waybillNoInfoList.isEmpty()) {
+                waybillNos = waybillNoInfoList.stream()
+                        .map(SfApiResponse.WaybillNoInfo::getWaybillNo)
+                        .collect(Collectors.toList());
+            }
         }
-        return null;
+
+        return waybillNos;
     }
 
     @Override

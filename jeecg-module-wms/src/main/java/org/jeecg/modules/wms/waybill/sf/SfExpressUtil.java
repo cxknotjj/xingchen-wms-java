@@ -1,11 +1,14 @@
 package org.jeecg.modules.wms.waybill.sf;
 
 import com.alibaba.fastjson.JSON;
-import com.sf.csim.express.service.CallExpressServiceTools;
 import com.sf.csim.express.service.HttpClientUtil;
 import lombok.Data;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,31 +37,34 @@ public class SfExpressUtil {
     public static final String EXP_RECE_SEARCH_ROUTES = "EXP_RECE_SEARCH_ROUTES";//查询路由
     public static final String COM_RECE_CLOUD_PRINT_WAYBILLS = "COM_RECE_CLOUD_PRINT_WAYBILLS";//面单转pdf
 
+    private static String computeMsgDigest(String msgData, String timestamp, String checkWord) {
+        String toVerify = msgData + timestamp + checkWord;
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(toVerify.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("MD5 algorithm not found", e);
+        }
+    }
+
     /**
      * 请求获取token
      *
      */
     public static String getToken() throws UnsupportedEncodingException {
-        CallExpressServiceTools tools=CallExpressServiceTools.getInstance();
-        // set common header
         Map<String, String> params = new HashMap<String, String>();
-        params.put("partnerID", client_code);  // 顾客编码 ，对应丰桥上获取的clientCode
+        params.put("partnerID", client_code);
         params.put("secret", check_word);
         params.put("grantType", "password");
 
-        // System.out.println(params.get("requestID"));
-        long startTime = System.currentTimeMillis();
-
-        //  System.out.println("====调用请求：" + params.get("msgData"));
-        System.out.println("====调用实际请求：" + params);
+        System.out.println("====调用token请求：" + params);
         String result = HttpClientUtil.post(token_url, params);
 
-        System.out.println("===调用地址 ===" + token_url);
+        System.out.println("===token调用地址 ===" + token_url);
         System.out.println("===顾客编码 ===" + client_code);
-        System.out.println("===返回结果：" + result);
-        //将result转为map
+        System.out.println("===token返回结果：" + result);
         Map<String, String> resultMap = JSON.parseObject(result, Map.class);
-        //从map中获取key为”accessToken“的值
         String accessToken = resultMap.get("accessToken");
         return accessToken;
     }
@@ -69,24 +75,26 @@ public class SfExpressUtil {
      * @return
      */
     public static String post(String serviceCode, String requestBody) throws UnsupportedEncodingException {
-        CallExpressServiceTools tools=CallExpressServiceTools.getInstance();
-        // set common header
         Map<String, String> params = new HashMap<String, String>();
 
         String timeStamp = String.valueOf(System.currentTimeMillis());
 
-        params.put("partnerID", client_code);  // 顾客编码 ，对应丰桥上获取的clientCode
+        params.put("partnerID", client_code);
         params.put("requestID", UUID.randomUUID().toString().replace("-", ""));
-        params.put("serviceCode", serviceCode);// 接口服务码
+        params.put("serviceCode", serviceCode);
         params.put("timestamp", timeStamp);
         params.put("msgData", requestBody);
-        params.put("msgDigest", tools.getMsgDigest(requestBody, timeStamp, check_word));
 
-        // System.out.println(params.get("requestID"));
+        String msgDigest = computeMsgDigest(requestBody, timeStamp, check_word);
+        params.put("msgDigest", msgDigest);
+
         long startTime = System.currentTimeMillis();
 
-        //  System.out.println("====调用请求：" + params.get("msgData"));
-        System.out.println("====调用实际请求：" + params);
+        System.out.println("====签名原文长度 msgData.length=" + requestBody.length());
+        System.out.println("====签名原文前500字符=" + (requestBody.length() > 500 ? requestBody.substring(0, 500) : requestBody));
+        System.out.println("====签名拼接字符串前500字符=" + ((requestBody + timeStamp + check_word).length() > 500 ? (requestBody + timeStamp + check_word).substring(0, 500) : (requestBody + timeStamp + check_word)));
+        System.out.println("====计算得到msgDigest=" + msgDigest);
+        System.out.println("====调用实际请求参数(不含msgData)：partnerID=" + params.get("partnerID") + ", requestID=" + params.get("requestID") + ", serviceCode=" + params.get("serviceCode") + ", timestamp=" + params.get("timestamp"));
         String result = HttpClientUtil.post(call_url, params);
 
         System.out.println("====调用丰桥的接口服务代码：" + serviceCode + " 接口耗时：" + String.valueOf(System.currentTimeMillis() - startTime) + "====");

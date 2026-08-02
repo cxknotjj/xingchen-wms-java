@@ -192,7 +192,27 @@ public class WmsWaybillServiceImpl  implements IWmsWaybillService {
 	 * 首先请求顺丰下单，成功后生成运单
 	 */
 	public void generateWaybillForOrder(String orderId) throws Exception {
-
+		// 查询出库单
+		WmsOutOrders wmsOutOrders = wmsOutOrdersService.getById(orderId);
+		// 校验，出库单状态是否为已打包
+		if(!wmsOutOrders.getStatus().equals(WarehouseDictEnum.OUTBOUND_PACKED.getCode())){
+			throw new JeecgBootException("出库单状态不是已打包，不能生成运单");
+		}
+		// 运单是否已经生成
+		if(wmsOutOrders.getCreatedWaybill().equals("1")){
+			throw new JeecgBootException("出库单已生成运单，不能重复生成");
+		}
+		// 根据出库单id查询下边的包裹
+		List<WmsShipment> wmsShipments = wmsShipmentService.list(new LambdaQueryWrapper<WmsShipment>().eq(WmsShipment::getOrderId, orderId));
+		// 得到包裹数目
+		int shipmentCount = wmsShipments.size();
+		if (shipmentCount == 0){
+			throw new JeecgBootException("出库单下不存在包裹，不能生成运单");
+		}
+		// 调用顺丰接口获得运单号
+		List<String> waybillNos = sfService.requestSfCreateOrder(wmsOutOrders, wmsShipments);
+		// 保存运单号到包裹
+		owner.saveWaybill(waybillNos,wmsShipments);
 	}
 
 	/**

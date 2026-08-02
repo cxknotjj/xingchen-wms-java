@@ -328,3 +328,10 @@ justauth:
     type: default
     prefix: 'demo::'
     timeout: 1h
+#顺丰接口参数
+wms:
+  express_api:
+    client_code: YI1CN78A
+    check_word: sPNUXOL5su53YXXA24nEo8w8u5AOISut
+    call_url: https://sfapi-sbox.sf-express.com/std/service
+    monthly_card: 7551234567
