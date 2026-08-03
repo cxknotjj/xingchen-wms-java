@@ -15,4 +15,5 @@ public interface IWmsStorageZonesService extends IService<WmsStorageZones> {
      * 分页查询库区信息
      */
     public IPage<WmsStorageZones> queryList(WmsStorageZones wmsStorageZones, Integer pageNo, Integer pageSize);
+
 }

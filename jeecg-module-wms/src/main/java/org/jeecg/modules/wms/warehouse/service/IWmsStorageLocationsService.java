@@ -11,4 +11,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IWmsStorageLocationsService extends IService<WmsStorageLocations> {
 
+    /**
+     * 根据储位编码查询储位信息
+     * @param locationCode
+     * @return
+     */
+    WmsStorageLocations getStorageLocationByLocationCode(String locationCode);
 }

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.common.system.vo.LoginUser;
@@ -22,6 +23,10 @@ import org.jeecg.modules.wms.outorder.mapper.WmsOutOrdersAllocationMapper;
 import org.jeecg.modules.wms.outorder.service.IWmsOutOrdersAllocationService;
 import org.jeecg.modules.wms.outorder.service.IWmsOutOrdersItemsService;
 import org.jeecg.modules.wms.outorder.service.IWmsOutOrdersService;
+import org.jeecg.modules.wms.pickroute.MultiProductPickingRouteOptimized;
+import org.jeecg.modules.wms.pickroute.dto.Location;
+import org.jeecg.modules.wms.pickroute.dto.Node;
+import org.jeecg.modules.wms.pickroute.dto.Product;
 import org.jeecg.modules.wms.warehouse.entity.WmsStorageLocations;
 import org.jeecg.modules.wms.warehouse.entity.WmsStorageZones;
 import org.jeecg.modules.wms.warehouse.service.IWmsStorageLocationsService;
@@ -231,7 +236,7 @@ public class PickingTasksServiceImpl implements IPickingTasksService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void completePickTask(String waveId){
+    public void completePickTask(String waveId) {
         //查询该波次下的拣货任务列表
         LambdaQueryWrapper<WmsTasks> eq = new LambdaQueryWrapper<WmsTasks>()
                 .eq(WmsTasks::getWaveOrderId, waveId);
@@ -246,17 +251,17 @@ public class PickingTasksServiceImpl implements IPickingTasksService {
                 int remainingQuantity = wmsTask.getQuantity() - wmsTask.getCompletedQuantity();
                 //查询缺货登记
                 WmsShortageRegistration shortageRegistration = wmsShortageRegistrationService.getById(wmsTask.getId());
-                if (shortageRegistration == null || shortageRegistration.getShortageQuantity()==null) {
-                    throw new JeecgBootException("任务"+wmsTask.getTaskNumber()+"未进行缺货登记");
+                if (shortageRegistration == null || shortageRegistration.getShortageQuantity() == null) {
+                    throw new JeecgBootException("任务" + wmsTask.getTaskNumber() + "未进行缺货登记");
                 }
                 //如果缺货登记数量不等于剩余拣货数量
                 if (shortageRegistration.getShortageQuantity() != remainingQuantity) {
-                    throw new JeecgBootException("任务"+wmsTask.getTaskNumber()+"的缺货登记数量与剩余拣货数量不一致");
+                    throw new JeecgBootException("任务" + wmsTask.getTaskNumber() + "的缺货登记数量与剩余拣货数量不一致");
                 }
                 //将任务状态更新为已拣货
                 wmsTask.setTaskStatus(WarehouseDictEnum.TASK_STATUS_COMPLETED.getCode());
                 boolean update = wmsTasksService.updateById(wmsTask);
-                if(! update){
+                if (!update) {
                     throw new JeecgBootException("更新任务状态失败");
                 }
             }
@@ -267,8 +272,8 @@ public class PickingTasksServiceImpl implements IPickingTasksService {
             throw new RuntimeException("波次下存在未完成拣货任务");
         }
         //更新波次下拣货明细表的状态为已拣货
-        boolean update =  wmsWaveSkuSummaryService.updatePickedStatus(waveId);
-        if(! update){
+        boolean update = wmsWaveSkuSummaryService.updatePickedStatus(waveId);
+        if (!update) {
             throw new JeecgBootException("更新拣次下拣货明细表状态失败");
         }
         //更新波次主表的拣货状态，如果波次下拣货明细的状态为已拣货，则更新波次主表的拣货状态为拣货完成
@@ -407,6 +412,67 @@ public class PickingTasksServiceImpl implements IPickingTasksService {
         //更新该波次完成分拣订单的数量
         wmsWaveMasterService.updateCompleteSortingOrderQuantity(waveIds);
 
+    }
+
+    @Override
+    public String viewPickPath(String waveId) {
+
+        // 获取波次
+        WmsWaveMaster wmsWaveMaster = wmsWaveMasterService.getById(waveId);
+
+        // 如果波次已经生成拣货路径，那么不在生成
+        if (StringUtils.isNotEmpty(wmsWaveMaster.getPickPathImg())) {
+            return wmsWaveMaster.getPickPathImg();
+        }
+        //如果状态是已创建则不允许查询拣货路径
+        if (WarehouseDictEnum.WAVE_CREATED.getCode().equals(wmsWaveMaster.getStatus())) {
+            throw new RuntimeException("波次" + wmsWaveMaster.getWaveNo() + "未完成拣货,不允许查询拣货路径");
+        }
+        // 根据波次拣货id查询波次拣货明细记录
+        List<WmsWaveSkuSummary> wmsWaveSkuSummaryList = wmsWaveSkuSummaryService.selectByWaveId(waveId);
+        // 调用A*算法工具类生成拣货路径
+        // 起始位置
+        Node startNode = new Node(0, 0);
+
+        List<Product> products = wmsWaveSkuSummaryList.stream().map(waveSkuSummary -> {
+            // 根据商品id查询商品信息
+            WmsProducts wmsProducts = wmsProductsService.getById(waveSkuSummary.getSkuId());
+            // 根据储位编码查询储位信息
+            WmsStorageLocations wmsLocation = wmsStorageLocationsService.getStorageLocationByLocationCode(waveSkuSummary.getLocationCode());
+            // 从储位对象拿储区id
+            String zoneId = wmsLocation.getZoneId();
+            // 利用储区id查询储区信息
+            WmsStorageZones wmsZone = wmsStorageZonesService.getById(zoneId);
+            //对象拿储区对象拿储区名称
+            String zoneName = wmsZone.getZoneName();
+            Location location = new Location(zoneName, Integer.parseInt(wmsLocation.getLocationLine()), Integer.parseInt(wmsLocation.getLocationRank()), wmsLocation.getLocationCode());
+            Product product = new Product(waveSkuSummary.getSkuId(), wmsProducts.getProductName(), location);
+            return product;
+        }).collect(Collectors.toList());
+
+        // 计算带商品信息的最优路径
+        MultiProductPickingRouteOptimized.RouteWithProducts routeWithProducts = MultiProductPickingRouteOptimized.calculateOptimalPickingRouteWithProducts(startNode, products);
+
+//        // 生成图形数据
+        System.out.println("\nSVG图形数据:");
+        String svgData = MultiProductPickingRouteOptimized.generateSVGData(routeWithProducts, startNode, products);
+        System.out.println(svgData);
+//
+//        // 保存SVG到文件
+//        saveSVGToFile(svgData, "picking_route.svg");
+        // 将图形代码保存到数据库
+        WmsWaveMaster wmsWaveMaster1 = new WmsWaveMaster();
+        wmsWaveMaster1.setPickPathImg(svgData);
+        wmsWaveMaster1.setId(waveId);
+        wmsWaveMasterService.updateById(wmsWaveMaster1);
+        return svgData;
+//
+        // 生成坐标点数据
+//        System.out.println("\n坐标点数据:");
+//        List<MultiProductPickingRouteOptimized.PointWithInfo> pointsData = MultiProductPickingRouteOptimized.generatePointsData(routeWithProducts, startNode, products);
+//        for (MultiProductPickingRouteOptimized.PointWithInfo point : pointsData) {
+//            System.out.println(point);
+//        }
     }
 
 

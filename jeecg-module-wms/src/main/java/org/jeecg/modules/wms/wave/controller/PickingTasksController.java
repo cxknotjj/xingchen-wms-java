@@ -180,5 +180,22 @@ public class PickingTasksController {
        return Result.OK(wmsTasks);
    }
 
+   /**
+    * 查看拣货路径
+    *
+    * @param waveId
+    * @return
+    */
+    @AutoLog(value = "任务表-查看拣货路径")
+    @Operation(summary="任务表-查看拣货路径")
+    @GetMapping(value = "/viewPickPath")
+    public Result<HashMap<String, String>>
+    viewPickPath(@RequestParam(name="waveId",required=true) String waveId) {
+        String svg = pickingTasksService.viewPickPath(waveId);
+        HashMap<String, String> stringStringHashMap = new HashMap<>();
+        stringStringHashMap.put("svg", svg);
+        return Result.OK(stringStringHashMap);
+    }
+
 
 }

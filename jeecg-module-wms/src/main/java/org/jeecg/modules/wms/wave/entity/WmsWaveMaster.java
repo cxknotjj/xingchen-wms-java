@@ -109,4 +109,12 @@ public class WmsWaveMaster implements Serializable {
     @TableField(exist = false)
     @Schema(description = "仓库名称")
     private String warehouseName;
+
+    @Excel(name = "拣货路径", width = 15)
+    @Schema(description = "拣货路径")
+    private String pickPath;
+    /**分拣路径图片*/
+    @Excel(name = "拣货路径图片", width = 15)
+    @Schema(description = "拣货路径图片")
+    private String pickPathImg;
 }
