@@ -264,7 +264,10 @@ public class WmsTasksServiceImpl extends ServiceImpl<WmsTasksMapper, WmsTasks> i
         wmsTasksRecords.setTaskType(wmsTasks.getTaskType());
         //执行时间
         wmsTasksRecords.setOperationTime(new Date());
-        //执行人
+        // 波次id
+        wmsTasksRecords.setWaveOrderId(wmsTasks.getWaveOrderId());
+        // 波次拣货明细id
+        wmsTasksRecords.setWaveSkuSummaryId(wmsTasks.getWaveSkuSummaryId());
         //获取当前用户
         LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
         String userId = sysUser.getId();

@@ -43,6 +43,12 @@ public class WmsWaybillController {
     @GetMapping (value = "/printWaybill")
     public Result<PrintWaybillResult> printWaybill(@RequestParam(name="waveId",required=true) String waveId) throws UnsupportedEncodingException {
         PrintWaybillResult printWaybillResult = new PrintWaybillResult();
+        // 请求顺丰拿去token
+        String token = SfExpressUtil.getToken();
+        // 从数据库拿运单号
+        List<String> strings = wmsWaybillService.selectWaybillNosByWaveId(waveId);
+        printWaybillResult.setWaybillNos(strings);
+        printWaybillResult.setToken(token);
         return Result.OK(printWaybillResult);
     }
     /**
