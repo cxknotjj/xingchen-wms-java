@@ -3,6 +3,8 @@ package org.jeecg.modules.wms.waybill.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.jeecg.modules.wms.shipment.service.IWmsShipmentService;
@@ -41,6 +43,8 @@ public class WmsWaybillController {
     @AutoLog(value = "波次-打印电子面单")
     @Operation(summary="波次-打印电子面单")
     @GetMapping (value = "/printWaybill")
+//    @RequiresRoles("")
+//    @RequiresPermissions(value = "wms:waybill:printwaybill")
     public Result<PrintWaybillResult> printWaybill(@RequestParam(name="waveId",required=true) String waveId) throws UnsupportedEncodingException {
         PrintWaybillResult printWaybillResult = new PrintWaybillResult();
         // 请求顺丰拿去token

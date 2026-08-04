@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.wms.analysis.mapper.BigscreenMapper">
+    <select id="countTaskList" parameterType="org.jeecg.modules.wms.wmstask.entity.WmsTasks"
+            resultType="org.jeecg.modules.wms.wmstask.entity.WmsTasks">
+        select wms_tasks.task_type, count(*) as taskCount
+        from wms_tasks
+        where
+            1 = 1
+            <!-- 根据任务状态 -->
+            <if test="taskStatus != null and taskStatus != ''">
+                and task_status = #{taskStatus}
+            </if>
+            <!-- 根据目标仓库 -->
+            <if test="targetWarehouseId != null and targetWarehouseId != ''">
+                and target_warehouse_id = #{targetWarehouseId}
+            </if>
+            <!-- 根据来源仓库 -->
+            <if test="sourceWarehouseId != null and sourceWarehouseId != ''">
+                and source_warehouse_id = #{sourceWarehouseId}
+            </if>
+            <!-- 根据创建时间 -->
+            <if test="createTimeString != null and createTimeString != ''">
+                and DATE(create_time) = DATE(#{createTimeString})
+            </if>
+        group by wms_tasks.task_type
+    </select>
+    <select id="findInboundNumbers" parameterType="String" resultType="java.util.Map">
+        -- 修正写法：外层再处理显示格式，1055报错彻底消失
+        SELECT
+            SUBSTRING(t.name, 6, 2)  AS name   -- 从 '2025-09' 里截出 '09'
+             -- 要"月"字就用这个：CONCAT(SUBSTRING(t.name, 6, 2), '月') AS name
+             , t.value                  AS value
+        FROM (
+            -- 内层：老老实实按 %Y-%m 分组（保证数据正确、不跨年合并）
+            SELECT
+            DATE_FORMAT(o.create_time, '%Y-%m')                 AS name,
+            IFNULL(SUM(o.total_shelved_quantity), 0)            AS value
+            FROM wms_stock_in_orders o
+            WHERE 1 = 1
+--         查询仓库id
+        <if test="warehouseId != null and warehouseId != ''">
+            AND o.warehouse_id = #{warehouseId}
+        </if>
+            AND o.status = 'PUTAWAYED'
+            AND o.create_time >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+            GROUP BY DATE_FORMAT(o.create_time, '%Y-%m')
+            ORDER BY DATE_FORMAT(o.create_time, '%Y-%m') ASC
+            ) t;
+    </select>
+
+    <select id="findOutboundNumbers" parameterType="String" resultType="java.util.Map">
+        SELECT
+        SUBSTRING(t.name, 6, 2)  AS name   -- 从 '2025-09' 里截出 '09'
+        -- 要"月"字就用这个：CONCAT(SUBSTRING(t.name, 6, 2), '月') AS name
+        , t.value                  AS value
+        FROM (
+        -- 内层：老老实实按 %Y-%m 分组（保证数据正确、不跨年合并）
+        SELECT
+        DATE_FORMAT(o.create_time, '%Y-%m')                 AS name,
+        IFNULL(SUM(o.total_quantity), 0)            AS value
+        FROM wms_out_orders o
+        WHERE 1 = 1
+        --         查询仓库id
+        <if test="warehouseId != null and warehouseId != ''">
+            AND o.warehouse_id = #{warehouseId}
+        </if>
+        AND o.status = 'PACKED'
+        AND o.create_time >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+        GROUP BY DATE_FORMAT(o.create_time, '%Y-%m')
+        ORDER BY DATE_FORMAT(o.create_time, '%Y-%m') ASC
+        ) t;
+    </select>
+</mapper>

@@ -166,4 +166,11 @@ public class WmsTasks implements Serializable {
     //仓库名称
     @TableField(exist = false)
     private java.lang.String warehouseName;
+
+    //任务数量
+    @TableField(exist = false)
+    private java.lang.Integer taskCount;
+    //时间字符串
+    @TableField(exist = false)
+    private java.lang.String createTimeString;
 }

@@ -68,7 +68,7 @@ public class WmsWarehousesController extends JeecgController<WmsWarehouses, IWms
 	//@AutoLog(value = "仓库表-分页列表查询")
 	@Operation(summary="仓库表-分页列表查询")
 	@GetMapping(value = "/list")
-//	@RequiresPermissions("warehouse:wms_warehouses:list")
+	@RequiresPermissions("warehouse:wms_warehouses:list")
 	public Result<IPage<WmsWarehouses>> queryPageList(WmsWarehouses wmsWarehouses,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
 								   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
