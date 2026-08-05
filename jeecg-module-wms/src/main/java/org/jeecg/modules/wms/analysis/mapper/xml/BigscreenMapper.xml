@@ -71,4 +71,20 @@
         ORDER BY DATE_FORMAT(o.create_time, '%Y-%m') ASC
         ) t;
     </select>
+
+    <select id="findOutboundTop" parameterType="String" resultType="java.util.Map">
+        SELECT
+        co.owner_name    AS name,
+        IFNULL(SUM(oo.total_quantity), 0) AS total
+        FROM wms_cargo_owners co
+             LEFT JOIN wms_out_orders oo
+                       ON co.id = oo.owner_id
+            <if test="warehouseId != null and warehouseId != ''">
+                AND oo.warehouse_id = #{warehouseId}
+            </if>
+        -- 如果需要只统计已完成出货的单据，取消下面注释
+        AND oo.status = 'PACKED'
+        GROUP BY co.owner_name
+        ORDER BY total DESC limit 10;
+    </select>
 </mapper>

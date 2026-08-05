@@ -21,4 +21,9 @@ public interface BigscreenService {
      * @return
      */
     List<Map<String, Object>> findOutboundNumbers(String warehouseId);
+
+    /**
+     * 查询出库数量Top
+     */
+    List<Map<String, Object>> findOutboundTop(String warehouseId);
 }

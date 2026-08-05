@@ -1,10 +1,14 @@
 package org.jeecg.modules.wms.analysis.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import org.jeecg.common.util.DateUtils;
 import org.jeecg.modules.wms.analysis.mapper.BigscreenMapper;
 import org.jeecg.modules.wms.analysis.service.BigscreenService;
 import org.jeecg.modules.wms.analysis.vo.TodoTask;
 import org.jeecg.modules.wms.config.WarehouseDictEnum;
+import org.jeecg.modules.wms.inventory.entity.WmsInventory;
 import org.jeecg.modules.wms.warehouse.service.IWmsWarehousesService;
 import org.jeecg.modules.wms.wmstask.entity.WmsTasks;
 import org.jeecg.modules.wms.wmstask.service.IWmsTasksService;
@@ -105,6 +109,14 @@ public class BigscreenServiceImpl implements BigscreenService {
         List<Map<String, Object>> fullList = cancelZeroMonths(dbList);
         // 2. 再取消月份的补0（09→9）
         return fillZeroMonths(fullList);
+    }
+
+    @Override
+    public List<Map<String, Object>> findOutboundTop(String warehouseId) {
+        //开启分页查询,当执行查询时，插件进行相关的sql拦截进行分页操作，返回一个page对象
+        List<Map<String, Object>> list = bigscreenMapper.findOutboundTop(warehouseId);
+        return list;
+
     }
 
     /**

@@ -59,4 +59,15 @@ public class BigscreenController {
         List<Map<String, Object>> outboundNumbers = bigscreenService.findOutboundNumbers(warehouseId);
         return Result.OK(outboundNumbers);
     }
+
+    /**
+     * 查询出库数量Top
+     */
+    @Operation(summary="出库数量Top")
+    @RequestMapping("/outbound-cargo-top")
+    public Result<List<Map<String, Object>>> outboundCargoTop(HttpServletRequest  request) {
+        String warehouseId = request.getHeader("x-warehouse-id");
+        List<Map<String, Object>> outboundCargoTop = bigscreenService.findOutboundTop(warehouseId);
+        return Result.OK(outboundCargoTop);
+    }
 }
