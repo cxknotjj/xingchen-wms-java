@@ -17,6 +17,10 @@
             <artifactId>jeecg-boot-base-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>jeecg-boot-module-airag</artifactId><version>3.8.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.pagehelper</groupId>
             <artifactId>pagehelper</artifactId>
             <version>6.1.1</version>

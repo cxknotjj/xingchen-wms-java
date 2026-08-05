@@ -24,6 +24,19 @@ management:
         include: metrics,httpexchanges,jeecghttptrace
 
 spring:
+  ai:
+    ollama:
+      base-url: http://localhost:11434 # ollama服务地址，这就是默认值
+      chat:
+        model: deepseek-r1:1.5b #模型名称
+        options:
+          temperature: 0.8 #模型温度，影响模型生成结果的随机性，越小越稳定
+    openai:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      api-key: ${QWEN_API}
+      chat:
+        options:
+          model: qwen3.7-plus # 可选择的模型列表 https://help.aliyun.com/zh/model-studio/getting-started/models
   main:
     allow-circular-references: true
   flyway:
@@ -191,9 +204,9 @@ jeecg:
   # AI集成
   ai-chat:
     enabled: true
-    model: deepseek-chat
-    apiKey: ??
-    apiHost: https://api.deepseek.com
+    model: deepseek-r1:1.5b
+    apiKey: ollama
+    apiHost: http://localhost:11434
     timeout: 60
   # AIRag向量库
   ai-rag:
@@ -226,7 +239,7 @@ jeecg:
     #webapp文件路径
     webapp: /opt/webapp
   shiro:
-    excludeUrls: /test/jeecgDemo/demo3,/test/jeecgDemo/redisDemo/**,/bigscreen/category/**,/bigscreen/visual/**,/bigscreen/map/**,/jmreport/bigscreen2/**
+    excludeUrls: /ai/**, /test/jeecgDemo/demo3,/test/jeecgDemo/redisDemo/**,/bigscreen/category/**,/bigscreen/visual/**,/bigscreen/map/**,/jmreport/bigscreen2/**
   #阿里云oss存储和大鱼短信秘钥配置
   oss:
     accessKey: ${OSS_ACCESS_KEY_ID}
@@ -294,6 +307,7 @@ logging:
     org.springframework.context.support.PostProcessorRegistrationDelegate: error
     org.flywaydb: debug
     org.jeecg.modules.system.mapper: info
+    org.springframework.ai: debug # AI对话的日志级别
 knife4j:
   #开启增强配置
   enable: true
