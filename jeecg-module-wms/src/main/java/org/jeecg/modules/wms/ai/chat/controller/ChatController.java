@@ -4,17 +4,25 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.jeecg.common.util.AssertUtils;
-import org.jeecg.common.util.UUIDGenerator;
-import org.jeecg.common.util.oConvertUtils;
+import org.jeecg.common.system.api.ISysBaseAPI;
+import org.jeecg.common.system.util.JwtUtil;
+import org.jeecg.common.util.*;
 import org.jeecg.modules.airag.app.entity.AiragApp;
 import org.jeecg.modules.airag.app.service.IAiragAppService;
 import org.jeecg.modules.airag.app.vo.ChatSendParams;
 import org.jeecg.modules.airag.common.handler.AIChatParams;
+import org.jeecg.modules.airag.config.RedisChatMemory;
+import org.jeecg.modules.wms.ai.chat.util.VectorDistanceUtils;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.reader.TextReader;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,11 +30,13 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.http.HttpRequest;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+
+import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
 
 @RestController
 @Slf4j
@@ -37,6 +47,7 @@ public class ChatController {
     //    @Resource(name = "chatClientOllama")
     @Resource(name = "chatClientOpenAi")
     private ChatClient chatClientOpenAi;
+
 
     @Autowired
     private IAiragAppService airagAppService;
@@ -73,6 +84,11 @@ public class ChatController {
         // 每次会话都生成一个新的,用来缓存emitter
         String requestId = UUIDGenerator.generate();
         SseEmitter emitter = new SseEmitter(-0L);
+        // 获取用户名称
+        String username = getUsername(httpRequest);
+        chatSendParams.setUsername(username);
+        // 将chatsendparams转换为json字符串
+        String json = JSONObject.toJSONString(chatSendParams);
 
         AtomicBoolean isThinking = new AtomicBoolean(false);
         //系统提示词
@@ -81,23 +97,26 @@ public class ChatController {
         //当前端是通过app应用发起聊天，得到appid
         AiragApp app = null;
         String appId = chatSendParams.getAppId();
-        if(StringUtils.isNotEmpty(appId)){
+        if (StringUtils.isNotEmpty(appId)) {
             app = airagAppService.getById(appId);
-            systemPrompt=app.getPrompt();
+            systemPrompt = app.getPrompt();
         }
+
         Flux<String> content = null;
         if (app == null) {
             content = chatClientOpenAi
                     .prompt(userMessage)
+                    .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json)) // 会话管理
                     .stream() // 流式调用
                     .content();
-        }else {
+        } else {
             //将Flux对象转成SseEmitter
             // 调用大模型
             content = chatClientOpenAi
                     .prompt(userMessage)
                     .user(userMessage)
                     .system(systemPrompt)   // 系统提示词
+                    .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json))
                     .stream() // 流式调用
                     .content();
         }
@@ -108,7 +127,7 @@ public class ChatController {
             sendMessage(emitter, conversationId, topicId, requestId, "\n> ", "MESSAGE");
         } catch (IOException e) {
             emitter.completeWithError(e);//将错误信息发送给客户端，并结束SSE连接。
-       }
+        }
 
         content.subscribe(data -> {
             //java接收到了大模型的响应
@@ -179,5 +198,79 @@ public class ChatController {
 
         String endJson = JSONObject.toJSONString(endResponse);
         emitter.send(SseEmitter.event().data(endJson));
+    }
+
+    @Autowired
+    private RedisUtil redisUtil;
+
+    @Autowired
+    private ISysBaseAPI sysBaseApi;
+
+    private String getUsername(HttpServletRequest httpRequest) {
+        try {
+            TokenUtils.getTokenByRequest();
+            String token;
+            if (null != httpRequest) {
+                token = TokenUtils.getTokenByRequest(httpRequest);
+            } else {
+                token = TokenUtils.getTokenByRequest();
+            }
+            if (TokenUtils.verifyToken(token, sysBaseApi, redisUtil)) {
+                return JwtUtil.getUsername(token);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        return null;
+    }
+
+    @Resource
+    private OpenAiEmbeddingModel openAiEmbeddingModel;
+
+    // 加载指定的资源文件
+//    @Value("classpath:1.txt")
+//    private org.springframework.core.io.Resource resource;
+//    @Value("classpath:2.txt")
+//    private org.springframework.core.io.Resource resource2;
+
+    @Resource
+    private VectorStore pgVectorStore;
+
+    @GetMapping(value = "/embedtest")
+    public void embedtest(String query,String t1 ,String t2, HttpServletResponse response) throws IOException {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("text/plain;charset=UTF-8");
+        PrintWriter writer = response.getWriter();
+        // 先将查询文本向量化
+        float[] queryVector = openAiEmbeddingModel.embed(query);
+        // 读取文本文件
+//        TextReader textReader = new TextReader(this.resource);
+        // 读取文本文件
+//        TextReader textReader2 = new TextReader(this.resource2);
+        // 获取Document对象
+
+        Document document = new Document(t1);
+        Document document2 = new Document(t2);
+        // 将两个文件加入list
+        List<Document> documents = new ArrayList<>();
+        documents.add(document);
+        documents.add(document2);
+        // 借助向量模型先生成向量
+        pgVectorStore.add(documents);
+        // 向量化处理
+        for (Document item : documents){
+            writer.println("--------------------------------");
+            //原始文本
+            writer.println(item.getText());
+            //转为向量
+            float[] embed = openAiEmbeddingModel.embed(item);
+            // 打印向量化后的数据
+            System.out.println(Arrays.toString(embed));
+            //比较欧氏距离
+            writer.println("比较欧氏距离"+ VectorDistanceUtils.euclideanDistance(queryVector, embed));
+            //余弦距离
+            writer.println("余弦距离"+VectorDistanceUtils.cosineDistance(queryVector, embed));
+        }
+
     }
 }
