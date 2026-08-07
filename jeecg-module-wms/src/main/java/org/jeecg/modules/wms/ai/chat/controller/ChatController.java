@@ -15,6 +15,7 @@ import org.jeecg.modules.airag.app.service.IAiragAppService;
 import org.jeecg.modules.airag.app.vo.ChatSendParams;
 import org.jeecg.modules.airag.common.handler.AIChatParams;
 import org.jeecg.modules.airag.config.RedisChatMemory;
+import org.jeecg.modules.wms.ai.chat.tools.WmsInventoryTools;
 import org.jeecg.modules.wms.ai.chat.util.VectorDistanceUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
@@ -51,6 +52,8 @@ public class ChatController {
     @Resource(name = "chatClientOpenAi")
     private ChatClient chatClientOpenAi;
 
+    @Autowired
+    private WmsInventoryTools wmsInventoryTools;
 
     @Autowired
     private IAiragAppService airagAppService;
@@ -159,6 +162,7 @@ public class ChatController {
                         .system(systemPrompt)   // 系统提示词
                         .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json))
                         .advisors(questionAnswerAdvisor) // 知识库检索
+                        .tools(wmsInventoryTools)
                         .stream() // 流式调用
                         .content();
             } else {
@@ -167,6 +171,7 @@ public class ChatController {
                         .user(userMessage)
                         .system(systemPrompt)   // 系统提示词
                         .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json)) // 会话管理
+                        .tools(wmsInventoryTools)
                         .stream() // 流式调用
                         .content();
             }
