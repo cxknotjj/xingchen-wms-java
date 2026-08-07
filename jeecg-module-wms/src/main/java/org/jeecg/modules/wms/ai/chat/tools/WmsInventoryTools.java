@@ -1,5 +1,6 @@
 package org.jeecg.modules.wms.ai.chat.tools;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.jeecg.modules.wms.ai.chat.vo.WmsInventoryQuery;
 import org.jeecg.modules.wms.goods.entity.WmsCargoOwners;
@@ -11,6 +12,8 @@ import org.jeecg.modules.wms.inventory.mapper.WmsInventoryMapper;
 import org.jeecg.modules.wms.inventory.service.IWmsInventoryService;
 import org.jeecg.modules.wms.warehouse.entity.WmsWarehouses;
 import org.jeecg.modules.wms.warehouse.service.IWmsWarehousesService;
+import org.jeecg.modules.wms.wave.entity.WmsWaveMaster;
+import org.jeecg.modules.wms.wave.service.IWmsWaveMasterService;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.BeanUtils;
@@ -39,6 +42,10 @@ public class WmsInventoryTools {
 
     @Autowired
     private IWmsProductsService wmsProductsService;
+
+    @Autowired
+    private IWmsWaveMasterService wmsWaveMasterService;
+
     /**
      * 查询库存
      */
@@ -79,6 +86,17 @@ public class WmsInventoryTools {
     public List<WmsProducts> queryProducts() {
         List<WmsProducts> products = wmsProductsService.getBaseMapper().selectList(null);
         return products;
+    }
+
+    /**
+     * 查询拣货路径
+     */
+    @Tool(description = "查询拣货路径")
+    public String queryPickPath(@ToolParam(description = "波次号") String waveNo) {
+        LambdaQueryWrapper<WmsWaveMaster> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(WmsWaveMaster::getWaveNo, waveNo);
+        WmsWaveMaster wmsWaveMaster = wmsWaveMasterService.getOne(lambdaQueryWrapper);
+        return wmsWaveMaster.getPickPathImg();
     }
 
 }
