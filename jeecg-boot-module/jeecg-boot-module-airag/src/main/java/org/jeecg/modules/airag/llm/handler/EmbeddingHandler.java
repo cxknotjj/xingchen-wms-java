@@ -45,8 +45,10 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -71,6 +73,16 @@ import static org.jeecg.modules.airag.llm.consts.LLMConsts.KNOWLEDGE_DOC_TYPE_WE
 @Component
 public class EmbeddingHandler implements IEmbeddingHandler {
 
+    /**
+     * Spring AI PgVectorStore 实际使用的表名 (见 ChatConfiguration#L55)
+     */
+    private static final String VECTOR_TABLE_NAME = "vector_store";
+
+    /**
+     * PostgreSQL schema
+     */
+    private static final String VECTOR_SCHEMA_NAME = "public";
+
     @Autowired
     EmbedStoreConfigBean embedStoreConfigBean;
 
@@ -80,6 +92,13 @@ public class EmbeddingHandler implements IEmbeddingHandler {
 
     @Resource
     private VectorStore pgVectorStore;
+
+    /**
+     * 复用已配置好的PostgreSQL JdbcTemplate(动态数据源)，避免认证失败
+     */
+    @Autowired
+    @Qualifier("vectorJdbcTemplate")
+    private JdbcTemplate vectorJdbcTemplate;
 
     @Autowired
     @Lazy
@@ -160,9 +179,10 @@ public class EmbeddingHandler implements IEmbeddingHandler {
         //update-end---author:chenrui ---date:20250307  for：[QQYUN-11443]【AI】是不是应该把标题也生成到向量库里，标题一般是有意义的------------
 
         // 先删除原来的向量,根据文档id来删除向量表中的向量
-        FilterExpressionBuilder filterExpressionBuilder = new FilterExpressionBuilder();
-        Filter.Expression expression = filterExpressionBuilder.eq("docId", docId).build();
-        pgVectorStore.delete(expression);
+        // 注：使用原生JDBC删除，避免：
+        // 1. Spring AI生成jsonpath语法BUG
+        // 2. pgVectorStore内部初始化可能触发的模型连接
+        deleteEmbedDocsByDocId(docId);
 
         // 新增向量 需要先定义Document对象，并且指定元数据信息
         // 定义一个元数据map
@@ -402,7 +422,7 @@ public class EmbeddingHandler implements IEmbeddingHandler {
     }
 
     /**
-     * 删除向量化文档
+     * 删除向量化文档(按知识库ID)
      *
      * @param knowId
      * @param modelId
@@ -411,15 +431,13 @@ public class EmbeddingHandler implements IEmbeddingHandler {
      */
     public void deleteEmbedDocsByKnowId(String knowId, String modelId) {
         AssertUtils.assertNotEmpty("选择知识库", knowId);
-        AiragModel model = getEmbedModelData(modelId);
-
-        EmbeddingStore<TextSegment> embeddingStore = getEmbedStore(model);
-        // 删除数据
-        embeddingStore.removeAll(metadataKey(EMBED_STORE_METADATA_KNOWLEDGEID).isEqualTo(knowId));
+        String sql = String.format("DELETE FROM %s.%s WHERE metadata ->> '%s' = ?",
+                VECTOR_SCHEMA_NAME, VECTOR_TABLE_NAME, EMBED_STORE_METADATA_KNOWLEDGEID);
+        executeVectorStoreDelete(sql, Collections.singletonList(knowId));
     }
 
     /**
-     * 删除向量化文档
+     * 删除向量化文档(按文档ID批量)
      *
      * @param docIds
      * @param modelId
@@ -428,11 +446,43 @@ public class EmbeddingHandler implements IEmbeddingHandler {
      */
     public void deleteEmbedDocsByDocIds(List<String> docIds, String modelId) {
         AssertUtils.assertNotEmpty("选择文档", docIds);
-        AiragModel model = getEmbedModelData(modelId);
+        String placeholders = docIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = String.format("DELETE FROM %s.%s WHERE metadata ->> '%s' IN (%s)",
+                VECTOR_SCHEMA_NAME, VECTOR_TABLE_NAME, EMBED_STORE_METADATA_DOCID, placeholders);
+        executeVectorStoreDelete(sql, new ArrayList<>(docIds));
+    }
 
-        EmbeddingStore<TextSegment> embeddingStore = getEmbedStore(model);
-        // 删除数据
-        embeddingStore.removeAll(metadataKey(EMBED_STORE_METADATA_DOCID).isIn(docIds));
+    /**
+     * 单文档删除向量(编辑文档时先删旧向量)
+     *
+     * @param docId 文档ID
+     */
+    public void deleteEmbedDocsByDocId(String docId) {
+        AssertUtils.assertNotEmpty("文档ID不能为空", docId);
+        String sql = String.format("DELETE FROM %s.%s WHERE metadata ->> '%s' = ?",
+                VECTOR_SCHEMA_NAME, VECTOR_TABLE_NAME, EMBED_STORE_METADATA_DOCID);
+        executeVectorStoreDelete(sql, Collections.singletonList(docId));
+    }
+
+    /**
+     * 通过复用容器中的 vectorJdbcTemplate(动态数据源) 执行删除
+     * 优势：
+     * 1. 复用已有数据源配置，不会出现 DriverManager 认证失败问题
+     * 2. 绕过 Spring AI 删除时生成的 jsonpath 语法 BUG
+     * 3. 不需要构建 EmbeddingStore → 不需要 dimension() → 不触发 Ollama 连接
+     *
+     * @param sql    预编译SQL
+     * @param params 参数列表
+     */
+    private void executeVectorStoreDelete(String sql, List<String> params) {
+        try {
+            Object[] args = params.toArray(new String[0]);
+            int affected = vectorJdbcTemplate.update(sql, args);
+            log.info("向量库删除执行完成, 影响行数: {}, SQL: {}, params: {}", affected, sql, params);
+        } catch (Exception e) {
+            log.error("向量库删除失败, SQL: {}, params: {}", sql, params, e);
+            throw new RuntimeException("向量库删除失败: " + e.getMessage(), e);
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ package org.jeecg.modules.wms.ai.chat.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.mchange.v1.util.ListUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,9 +17,11 @@ import org.jeecg.modules.airag.common.handler.AIChatParams;
 import org.jeecg.modules.airag.config.RedisChatMemory;
 import org.jeecg.modules.wms.ai.chat.util.VectorDistanceUtils;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.reader.TextReader;
+import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -72,6 +75,32 @@ public class ChatController {
         return content;
     }
 
+    /*
+    *获取questionAnswerAdvisor 对象
+    * @param knowIds 知识库ids
+        @return
+    */
+    private QuestionAnswerAdvisor getQuestionAnswerAdvisor(List<String> knowIds) {
+        // 拼接knowIds，将knowid拼接成 knowledgeId=='1958811713520881665' || knowledgeId=='1958811713520881666'
+        StringBuilder stringBuilder = new StringBuilder();
+        Iterator<String> iterator = knowIds.iterator();
+        while (iterator.hasNext()) {
+            stringBuilder.append("knowledgeId=='" + iterator.next()).append("'");
+            if (iterator.hasNext()) {
+                stringBuilder.append(" || ");
+            }
+        }
+
+        QuestionAnswerAdvisor questionAnswerAdvisor = new QuestionAnswerAdvisor(
+                pgVectorStore,// 向量库
+                SearchRequest.builder()//向量检索的请求参数
+                        .similarityThreshold(0.5d) //相似度阈值
+                        .filterExpression(stringBuilder.toString())
+                        .topK(2) //返回的文档片段数量
+                        .build());
+        return questionAnswerAdvisor;
+    }
+
     @RequestMapping("/chat/send")
     public SseEmitter send(@RequestBody ChatSendParams chatSendParams, HttpServletRequest httpRequest) {
         AssertUtils.assertNotEmpty("参数异常", chatSendParams);
@@ -96,29 +125,52 @@ public class ChatController {
 
         //当前端是通过app应用发起聊天，得到appid
         AiragApp app = null;
+        List<String> knowIds = null;
         String appId = chatSendParams.getAppId();
         if (StringUtils.isNotEmpty(appId)) {
             app = airagAppService.getById(appId);
             systemPrompt = app.getPrompt();
+            // 获取知识库id
+            knowIds = app.getKnowIds();
         }
+
+
+
 
         Flux<String> content = null;
         if (app == null) {
             content = chatClientOpenAi
                     .prompt(userMessage)
+                    .user(userMessage)
+                    .system(systemPrompt)   // 系统提示词
                     .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json)) // 会话管理
                     .stream() // 流式调用
                     .content();
         } else {
             //将Flux对象转成SseEmitter
-            // 调用大模型
-            content = chatClientOpenAi
-                    .prompt(userMessage)
-                    .user(userMessage)
-                    .system(systemPrompt)   // 系统提示词
-                    .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json))
-                    .stream() // 流式调用
-                    .content();
+            // 如果knowIds不为空
+            if (knowIds != null && knowIds.size() > 0) {
+                // 获取questionAnswerAdvisor 对象
+                QuestionAnswerAdvisor questionAnswerAdvisor = getQuestionAnswerAdvisor(knowIds);
+                // 调用大模型
+                content = chatClientOpenAi
+                        .prompt(userMessage)
+                        .user(userMessage)
+                        .system(systemPrompt)   // 系统提示词
+                        .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json))
+                        .advisors(questionAnswerAdvisor) // 知识库检索
+                        .stream() // 流式调用
+                        .content();
+            } else {
+                content = chatClientOpenAi
+                        .prompt(userMessage)
+                        .user(userMessage)
+                        .system(systemPrompt)   // 系统提示词
+                        .advisors(a -> a.param(CHAT_MEMORY_CONVERSATION_ID_KEY, json)) // 会话管理
+                        .stream() // 流式调用
+                        .content();
+            }
+
         }
 
         // 向前端发送两条消息
@@ -237,7 +289,7 @@ public class ChatController {
     private VectorStore pgVectorStore;
 
     @GetMapping(value = "/embedtest")
-    public void embedtest(String query,String t1 ,String t2, HttpServletResponse response) throws IOException {
+    public void embedtest(String query, String t1, String t2, HttpServletResponse response) throws IOException {
         response.setCharacterEncoding("UTF-8");
         response.setContentType("text/plain;charset=UTF-8");
         PrintWriter writer = response.getWriter();
@@ -258,7 +310,7 @@ public class ChatController {
         // 借助向量模型先生成向量
         pgVectorStore.add(documents);
         // 向量化处理
-        for (Document item : documents){
+        for (Document item : documents) {
             writer.println("--------------------------------");
             //原始文本
             writer.println(item.getText());
@@ -267,9 +319,9 @@ public class ChatController {
             // 打印向量化后的数据
             System.out.println(Arrays.toString(embed));
             //比较欧氏距离
-            writer.println("比较欧氏距离"+ VectorDistanceUtils.euclideanDistance(queryVector, embed));
+            writer.println("比较欧氏距离" + VectorDistanceUtils.euclideanDistance(queryVector, embed));
             //余弦距离
-            writer.println("余弦距离"+VectorDistanceUtils.cosineDistance(queryVector, embed));
+            writer.println("余弦距离" + VectorDistanceUtils.cosineDistance(queryVector, embed));
         }
 
     }

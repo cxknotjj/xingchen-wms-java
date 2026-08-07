@@ -224,6 +224,8 @@ public class AiragKnowledgeDocServiceImpl extends ServiceImpl<AiragKnowledgeDocM
             AssertUtils.assertNotEmpty("知识库不存在", airagKnowledge);
             AssertUtils.assertNotEmpty("请先为知识库配置向量模型库", airagKnowledge.getEmbedId());
             // 删除数据
+            // 1. 删除postgresql向量模型库中的文档
+            // 2. 删除mysql数据库中的文档
             embeddingHandler.deleteEmbedDocsByDocIds(groupedDocIds, airagKnowledge.getEmbedId());
             airagKnowledgeDocMapper.deleteBatchIds(groupedDocIds);
         });

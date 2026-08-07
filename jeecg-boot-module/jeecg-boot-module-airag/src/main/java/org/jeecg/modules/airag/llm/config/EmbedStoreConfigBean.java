@@ -37,11 +37,11 @@ public class EmbedStoreConfigBean {
     /**
      * 密码
      */
-    private String password = "postgres";
+    private String password = "postgresql";
 
     /**
      * 存储向量的表
      */
-    private String table = "embeddings";
+    private String table = "vector_store";
 
 }
