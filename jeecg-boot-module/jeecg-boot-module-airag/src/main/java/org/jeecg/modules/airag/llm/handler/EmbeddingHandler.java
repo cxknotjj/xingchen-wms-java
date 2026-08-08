@@ -208,61 +208,63 @@ public class EmbeddingHandler implements IEmbeddingHandler {
         }
         // 向量化
         pgVectorStore.add(split);
+        // 调用jeecgboot方法写入向量
+        embeddingDocument_old(knowId, doc);
         return metadata;
 
     }
 
 
-//    public Map<String, Object> embeddingDocument(String knowId, AiragKnowledgeDoc doc) {
-//        AiragKnowledge airagKnowledge = airagKnowledgeService.getById(knowId);
-//        AssertUtils.assertNotEmpty("知识库不存在", airagKnowledge);
-//        AssertUtils.assertNotEmpty("请先为知识库配置向量模型库", airagKnowledge.getEmbedId());
-//        AssertUtils.assertNotEmpty("文档不能为空", doc);
-//        // 读取文档
-//        String content = doc.getContent();
-//        // 向量化并存储
-//        if (oConvertUtils.isEmpty(content)) {
-//            switch (doc.getType()) {
-//                case KNOWLEDGE_DOC_TYPE_FILE:
-//                    //解析文件
-//                    if (knowConfigBean.isEnableMinerU()) {
-//                        parseFileByMinerU(doc);
-//                    }
-//                    content = parseFile(doc);
-//                    break;
-//                case KNOWLEDGE_DOC_TYPE_WEB:
-//                    // TODO author: chenrui for:读取网站内容 date:2025/2/18
-//                    break;
-//            }
-//        }
-//        //update-begin---author:chenrui ---date:20250307  for：[QQYUN-11443]【AI】是不是应该把标题也生成到向量库里，标题一般是有意义的------------
-//        if (oConvertUtils.isNotEmpty(doc.getTitle())) {
-//            content = doc.getTitle() + "\n\n" + content;
-//        }
-//        //update-end---author:chenrui ---date:20250307  for：[QQYUN-11443]【AI】是不是应该把标题也生成到向量库里，标题一般是有意义的------------
-//
-//        // 向量化 date:2025/2/18
-//        AiragModel model = getEmbedModelData(airagKnowledge.getEmbedId());
-//        AiModelOptions modelOp = buildModelOptions(model);
-//        EmbeddingModel embeddingModel = AiModelFactory.createEmbeddingModel(modelOp);
-//        EmbeddingStore<TextSegment> embeddingStore = getEmbedStore(model);
-//        // 删除旧数据
-//        embeddingStore.removeAll(metadataKey(EMBED_STORE_METADATA_DOCID).isEqualTo(doc.getId()));
-//        // 分段器
-//        DocumentSplitter splitter = DocumentSplitters.recursive(DEFAULT_SEGMENT_SIZE, DEFAULT_OVERLAP_SIZE, new OpenAiTokenizer());
-//        // 分段并存储
-//        EmbeddingStoreIngestor ingestor = EmbeddingStoreIngestor.builder()
-//                .documentSplitter(splitter)
-//                .embeddingModel(embeddingModel)
-//                .embeddingStore(embeddingStore)
-//                .build();
-//        Metadata metadata = Metadata.metadata(EMBED_STORE_METADATA_DOCID, doc.getId())
-//                .put(EMBED_STORE_METADATA_KNOWLEDGEID, doc.getKnowledgeId())
-//                .put(EMBED_STORE_METADATA_DOCNAME, FilenameUtils.getName(doc.getTitle()));
-//        Document from = Document.from(content, metadata);
-//        ingestor.ingest(from);
-//        return metadata.toMap();
-//    }
+    public Map<String, Object> embeddingDocument_old(String knowId, AiragKnowledgeDoc doc) {
+        AiragKnowledge airagKnowledge = airagKnowledgeService.getById(knowId);
+        AssertUtils.assertNotEmpty("知识库不存在", airagKnowledge);
+        AssertUtils.assertNotEmpty("请先为知识库配置向量模型库", airagKnowledge.getEmbedId());
+        AssertUtils.assertNotEmpty("文档不能为空", doc);
+        // 读取文档
+        String content = doc.getContent();
+        // 向量化并存储
+        if (oConvertUtils.isEmpty(content)) {
+            switch (doc.getType()) {
+                case KNOWLEDGE_DOC_TYPE_FILE:
+                    //解析文件
+                    if (knowConfigBean.isEnableMinerU()) {
+                        parseFileByMinerU(doc);
+                    }
+                    content = parseFile(doc);
+                    break;
+                case KNOWLEDGE_DOC_TYPE_WEB:
+                    // TODO author: chenrui for:读取网站内容 date:2025/2/18
+                    break;
+            }
+        }
+        //update-begin---author:chenrui ---date:20250307  for：[QQYUN-11443]【AI】是不是应该把标题也生成到向量库里，标题一般是有意义的------------
+        if (oConvertUtils.isNotEmpty(doc.getTitle())) {
+            content = doc.getTitle() + "\n\n" + content;
+        }
+        //update-end---author:chenrui ---date:20250307  for：[QQYUN-11443]【AI】是不是应该把标题也生成到向量库里，标题一般是有意义的------------
+
+        // 向量化 date:2025/2/18
+        AiragModel model = getEmbedModelData(airagKnowledge.getEmbedId());
+        AiModelOptions modelOp = buildModelOptions(model);
+        EmbeddingModel embeddingModel = AiModelFactory.createEmbeddingModel(modelOp);
+        EmbeddingStore<TextSegment> embeddingStore = getEmbedStore(model);
+        // 删除旧数据
+        embeddingStore.removeAll(metadataKey(EMBED_STORE_METADATA_DOCID).isEqualTo(doc.getId()));
+        // 分段器
+        DocumentSplitter splitter = DocumentSplitters.recursive(DEFAULT_SEGMENT_SIZE, DEFAULT_OVERLAP_SIZE, new OpenAiTokenizer());
+        // 分段并存储
+        EmbeddingStoreIngestor ingestor = EmbeddingStoreIngestor.builder()
+                .documentSplitter(splitter)
+                .embeddingModel(embeddingModel)
+                .embeddingStore(embeddingStore)
+                .build();
+        Metadata metadata = Metadata.metadata(EMBED_STORE_METADATA_DOCID, doc.getId())
+                .put(EMBED_STORE_METADATA_KNOWLEDGEID, doc.getKnowledgeId())
+                .put(EMBED_STORE_METADATA_DOCNAME, FilenameUtils.getName(doc.getTitle()));
+        Document from = Document.from(content, metadata);
+        ingestor.ingest(from);
+        return metadata.toMap();
+    }
 
     /**
      * 向量查询(多知识库)

@@ -222,7 +222,7 @@ jeecg:
       port: 5432
       database: postgres
       user: postgres
-      password: postgres
+      password: postgresql
       table: embeddings
   # 平台上线安全配置
   firewall:
@@ -315,6 +315,12 @@ logging:
     org.flywaydb: debug
     org.jeecg.modules.system.mapper: info
     org.springframework.ai: debug # AI对话的日志级别
+    # 1. 开启 LangChain4j OpenAI 模块的调试日志 (查看模型交互逻辑)
+    dev.langchain4j: DEBUG
+    # 2. 【关键】开启底层 HTTP 客户端的调试日志 (查看完整的 URL、Header、Body)
+    # LangChain4j 默认使用 JDK HttpClient 或 OkHttp，这里通常需要开启这两个包
+    java.net.http: DEBUG
+    okhttp3: DEBUG
 knife4j:
   #开启增强配置
   enable: true
